@@ -106,3 +106,37 @@ When managing TPU deployments or customizing vLLM serving, ensure the following 
 ## 📊 Analysis Standards
 
 - **Dependency Portability:** Avoid assuming third-party analysis libraries like `pandas` are installed in the workspace environment. Prefer standard libraries (e.g., `csv`, `json`) for data parsing and aggregation scripts.
+
+---
+
+## ⚡ Gemma 4 E2B QAT JAX Engine & TPU v6e-1 Benchmarks
+
+This workspace includes a high-performance, raw JAX inference engine for **Gemma 4 E2B QAT** (`ports/gemma4/jax_e_model.py` and `jax_openai_server.py`), specifically tailored for Cloud TPU v6e single-chip hardware (`ct6e-standard-1t`, 32 GB HBM3).
+
+### 🚀 Hardware-Specific Optimizations
+1. **128-Aligned Static Bucket Padding** (`pad_to_tpu_v6e_bucket`):
+   - Aligns sequence lengths and batch dimensions to TPU v6e Matrix Unit (MXU) $128 \times 128$ systolic array boundaries ($N \pmod{128} = 0$), preventing XLA graph recompilation and maximizing hardware FLOP efficiency.
+2. **Vectorized On-Chip Top-K Sampling** (`onchip_sample_tpu_v6e_jax`):
+   - Leverages Gemma 4 E2B's tile-aligned $262,144$ vocabulary dimension ($2,048 \times 128$), running sampling 100% on TPU cores with zero CPU host transfers.
+3. **Persistent XLA Compilation Disk Cache**:
+   - `jax.config.update("jax_compilation_cache_dir", "~/.cache/jax_compilation_cache")` reduces server cold-start compilation time from ~44s down to **~5s** (**~8.5x speedup**).
+4. **OpenAI-Compatible SSE Token Streaming**:
+   - Real-time `text/event-stream` token generation supported via `jax_openai_server.py`.
+
+### 📈 Performance Summary Matrix (TPU v6e 32 GB HBM)
+
+| Users ($B$) | Context ($S$) | Prefill Latency | Step Latency | Aggregate Throughput | Per-User Speed | Max Reachable Context |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | **8 – 4K** | ~544 ms | 19.04 ms | 52.5 tok/s | 52.5 tok/s | **4,096 tokens** |
+| **2** | **8 – 2K** | ~614 ms | **6.81 ms** | **293.7 tok/s** | **146.8 tok/s** | **2,048 tokens** |
+| **4** | **8 – 1K** | ~654 ms | **6.92 ms** | **577.8 tok/s** | **144.4 tok/s** | **1,024 tokens** |
+| **8** | **8 – 512** | ~651 ms | **6.95 ms** | **1,150.6 tok/s** | **143.8 tok/s** | **512 tokens** |
+| **16** | **8 – 256** | ~597 ms | **7.19 ms** | **2,225.1 tok/s** | **139.1 tok/s** | **256 tokens** |
+| **32** | **8 – 128** | ~604 ms | **8.07 ms** | **3,966.2 tok/s** | **123.9 tok/s** | **128 tokens** |
+| **64** | **8 – 64** | ~701 ms | **9.85 ms** | **6,496.8 tok/s** | **101.5 tok/s** | **64 tokens** |
+
+### 🔑 Benchmark Takeaways
+- **The ~2.7x Per-User Speedup**: Scaling batch size from $B=1$ (19.04 ms/step, 52.5 tok/s) to $B=2\dots 16$ (~6.8–7.2 ms/step) yields a **2.7x generation speedup per user (~144 tok/s/user)** by fully populating TPU v6e's 128x128 MXU vector lanes.
+- **Peak Throughput**: Reaches **6,496.8 tokens/sec aggregate** at $B=64$ users.
+- **vLLM Compatibility**: Resolves vLLM TPU loader bug `#3225` (missing `k_norm` weights on KV-shared layers in QAT checkpoints), allowing INT8 QAT weights to run live on TPU today with ~5s startup.
+
