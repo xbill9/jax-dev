@@ -373,16 +373,33 @@ def apply_rope_jax(
 _MASK_MIN = -1e9
 
 
-def make_ring_decode_mask(batch: int, window: int, positions_written: jax.Array) -> jax.Array:
+def make_ring_decode_mask(batch: int, window: int, positions_written: jax.Array,
+                          valid: Optional[jax.Array] = None) -> jax.Array:
     """Additive mask over a windowed sliding layer's ring buffer at decode.
 
     The ring holds exactly the most recent `window` positions, so once it has
-    wrapped every slot is valid and no window arithmetic is needed — before that,
-    only slots [0, positions_written) hold real tokens. Returns [B, 1, 1, window].
+    wrapped every slot is occupied — before that, only slots [0, positions_written)
+    hold tokens. Returns [B, 1, 1, window].
+
+    `positions_written` alone is not enough: it says a slot was *written*, not that
+    what it holds is a real token. A bucket-padded prompt is prefilled across the
+    whole bucket, so slots [real_len, bucket_len) hold pad K/V, and decode resumes
+    at the bucket length — leaving that pad gap strictly below the current slot.
+    Admitting it lets attention read padding as context, which does not crash and
+    does not drift: it silently corrupts every decode step. So map each ring slot
+    back to the newest logical position stored there and take that position's
+    validity. Slot j holds the largest p <= cur with p % window == j, which is
+    exact whether or not the ring has wrapped.
     """
     idx = jnp.arange(window)[None, :]
-    filled = jnp.minimum(jnp.asarray(positions_written, jnp.int32), window)
+    pw = jnp.asarray(positions_written, jnp.int32)
+    filled = jnp.minimum(pw, window)
     ok = jnp.broadcast_to(idx < filled, (batch, window))
+    if valid is not None:
+        cur = pw - 1                                        # newest written position
+        pos = idx + window * jnp.floor_divide(cur - idx, window)
+        pos = jnp.clip(pos, 0, valid.shape[1] - 1)          # unwritten slots: masked by `ok`
+        ok = ok & jnp.take_along_axis(valid, jnp.broadcast_to(pos, (batch, window)), axis=1)
     return jnp.where(ok[:, None, None, :], 0.0, _MASK_MIN).astype(jnp.float32)
 
 
@@ -1396,7 +1413,8 @@ def make_cached_decode_step(model: Gemma4EModelJAX, quant_mode: str = "w4a16",
             # 512-key mask for, e.g., a 72-key cache.
             ring_len = min(int(window), valid.shape[1])
             sliding_mask = make_ring_decode_mask(
-                valid.shape[0], ring_len, jnp.asarray(slot, jnp.int32) + 1)
+                valid.shape[0], ring_len, jnp.asarray(slot, jnp.int32) + 1,
+                valid=valid)
         else:
             sliding_mask = make_decode_mask(valid, window=window, slot=slot)
         logits, caches = model(
