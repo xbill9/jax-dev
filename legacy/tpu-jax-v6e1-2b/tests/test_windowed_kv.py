@@ -64,6 +64,36 @@ def generate(model, params, prompt, n, window_kv):
     return jnp.concatenate(out, axis=1), logits
 
 
+def generate_bucket_padded(model, params, prompt, n, window_kv, bucket):
+    """Mirror JaxGemmaEngine.generate: prefill a padded bucket, decode from it.
+
+    The engine rounds the prompt up to a TPU bucket, prefills the WHOLE bucket,
+    then advances the decode slot from the bucket length while logical positions
+    advance from the real length (jax_engine.py: `bucket_s + step_idx` against
+    `prompt_lens + step_idx`). `generate` above never pads, so it cannot reach the
+    pad-slot gap this creates.
+    """
+    B, S = prompt.shape
+    pad = bucket - S
+    padded = jnp.pad(prompt, ((0, 0), (0, pad)), constant_values=0)
+    valid_prompt = jnp.concatenate(
+        [jnp.ones((B, S), dtype=jnp.bool_), jnp.zeros((B, pad), dtype=jnp.bool_)], axis=1)
+    last, caches, valid = prefill_with_kv_cache(
+        model, padded, valid_prompt, params, n,
+        quant_mode="fp16", cache_dtype=DTYPE, window_kv=window_kv,
+    )
+    step = jax.jit(make_cached_decode_step(model, quant_mode="fp16", window_kv=window_kv))
+    lens = jnp.full((B,), S, dtype=jnp.int32)
+    tok = jnp.argmax(last, axis=-1, keepdims=True)
+    out, logits = [tok], [last]
+    for t in range(n - 1):
+        caches, valid, last = step(params, caches, valid, tok, lens + t, jnp.int32(bucket + t))
+        logits.append(last)
+        tok = jnp.argmax(last, axis=-1, keepdims=True)
+        out.append(tok)
+    return jnp.concatenate(out, axis=1), logits
+
+
 class WindowedKVTest(unittest.TestCase):
     def setUp(self):
         self.config = windowed_config()
@@ -121,6 +151,36 @@ class WindowedKVTest(unittest.TestCase):
         for i, (x, y) in enumerate(zip(la, lb)):
             d = float(jnp.max(jnp.abs(x - y)))
             self.assertLess(d, 1e-4, f"step {i} logits diverge by {d:.2e} under windowed KV")
+        self.assertEqual(a.tolist(), b.tolist())
+
+    def test_bucket_padded_prompt_does_not_admit_pad_slots(self):
+        """Regression: pad slots sit BELOW the decode slot and must stay masked.
+
+        Prefilling a bucket-padded prompt writes pad K/V into slots
+        [real_len, bucket), and decode then resumes at `bucket` -- so that gap is
+        strictly below the current slot rather than above it. The full-length path
+        masks it through `valid`; the ring mask was built from `positions_written`
+        alone, which says a slot was *written*, not that it holds a real token, so
+        it admitted the padding.
+
+        This fails loudly in production and silently in every other test here:
+        nothing crashes and nothing drifts -- attention just reads padding as
+        context on every decode step, and generation degenerates into repetition.
+        Every other test in this file feeds an unpadded prompt, so none of them
+        create the gap at all.
+        """
+        real_len, bucket, n = 3, 8, 6
+        prompt = jax.random.randint(
+            jax.random.PRNGKey(11), (1, real_len), 1, self.config.vocab_size)
+        a, la = generate_bucket_padded(
+            self.model, self.params, prompt, n, window_kv=False, bucket=bucket)
+        b, lb = generate_bucket_padded(
+            self.model, self.params, prompt, n, window_kv=True, bucket=bucket)
+        for i, (x, y) in enumerate(zip(la, lb)):
+            d = float(jnp.max(jnp.abs(x - y)))
+            self.assertLess(d, 1e-4,
+                            f"step {i} logits diverge by {d:.2e} — windowed KV is "
+                            f"attending pad slots [{real_len}, {bucket})")
         self.assertEqual(a.tolist(), b.tolist())
 
     def test_decode_wraps_past_the_window(self):
