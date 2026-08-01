@@ -62,6 +62,13 @@ The pure-JAX engine (`ports/gemma4/`, `jax_engine.py`) is where this repo's hard
 bugs live. Read these before optimizing or debugging it — the two largest defects
 found so far were both documented upstream the whole time.
 
+- **`docs/gemma4-quirks.md`** — read this first. Part I is the architecture, verified
+  against the reference module; Part II is the serving path (bucket padding vs the
+  sliding window, chunked prefill, mask/slot bookkeeping) including two open
+  wrong-output bugs that the test suite passes straight through. It also explains why:
+  nearly every test here is a parity assertion between two of our own code paths, so
+  an assumption both paths share is invisible to all of them.
+
 - **[How to think in JAX](https://docs.jax.dev/en/latest/notebooks/thinking_in_jax.html)**
   — the mental model. Two of its lessons map directly onto real bugs here:
   **arrays are immutable**, so `dynamic_update_slice` writing one token into the KV

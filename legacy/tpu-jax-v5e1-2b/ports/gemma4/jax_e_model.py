@@ -406,7 +406,7 @@ def make_prefill_causal_mask(valid_mask: jax.Array, window: Optional[int] = None
 
     valid_mask: [B, S] bool — True for real (non-pad) tokens.
     window: if set, a sliding-attention layer may only see the last `window`
-      positions (Gemma 4 E2B declares sliding_window: 512 for 32 of its 35 layers).
+      positions (Gemma 4 E2B declares sliding_window: 512 for 28 of its 35 layers).
     Returns [B, 1, S, S] float mask: 0 where query i may attend key j, -1e9 otherwise.
     """
     B, S = valid_mask.shape
