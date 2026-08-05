@@ -137,7 +137,8 @@ def convert_safetensors_to_jax_params(
         # Gemma sandwich norms around the feed-forward block.
         layer_p["pre_feedforward_layernorm"] = get_arr(f"{lp}.pre_feedforward_layernorm.weight")
         layer_p["post_feedforward_layernorm"] = get_arr(f"{lp}.post_feedforward_layernorm.weight")
-        # Single learned scalar per layer; role unverified, loaded but not applied.
+        # Single learned scalar per layer. Applied by Gemma4EModelJAX to the whole
+        # residual stream at the end of each decoder layer; see quirk 3.
         if f"{lp}.layer_scalar" in raw_weights:
             layer_p["layer_scalar"] = get_arr(f"{lp}.layer_scalar")
 
