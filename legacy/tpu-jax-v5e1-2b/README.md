@@ -1,9 +1,18 @@
 # Gemma 4 E2B QAT on a Single TPU with Pure JAX
 
 This repository is an experimental, inspectable inference path for
-`google/gemma-4-E2B-it-qat-w4a16-ct` on one Cloud TPU v6e-1. It loads the QAT
+`google/gemma-4-E2B-it-qat-w4a16-ct` on a single-chip Cloud TPU. It loads the QAT
 checkpoint directly from safetensors, executes Gemma 4 in JAX without PyTorch,
 and exposes an OpenAI-compatible HTTP/SSE server.
+
+**Target versus measurements.** The default deployment target is a **v5e-1
+flex-start VM** — `ct5lp-hightpu-1t`, 16 GB HBM, `us-west4-a` — which is what
+`server.py`, `set_env.sh`, and [`deploy.md`](deploy.md) provision. Every *measured*
+number on this page was taken on a **v6e-1** (`ct6e-standard-1t`, 32 GB HBM3) and
+is labelled as such. There are no v5e-1 measurements yet, so do not quote one from
+here. The 16 GB budget also changes which checkpoint to load: `deploy.md` works
+through why `-w4a16-ct` is the safe v5e-1 default even though the bf16
+`-q4_0-unquantized` variant is the faster of the two on a v6e-1.
 
 The project began with a practical incompatibility: the tested vLLM TPU stack
 could not load this QAT export. Building the missing path uncovered a broader
@@ -90,8 +99,12 @@ replacement. Full results:
 
 ## Run the engine
 
-Use a TPU VM with a current `jax[tpu]` installation and authenticated access to
-the gated Gemma checkpoint. Install the HTTP and checkpoint dependencies, then:
+Provision the default target and confirm JAX sees the chip — via the MCP agent,
+`create_tpu_vm_instance(workload="jax")` then `wait_for_jax_ready` and
+`verify_jax_tpu`, or the equivalent raw `gcloud` in [deploy.md](deploy.md). That
+gives a TPU VM with a current `jax[tpu]` installation and no docker. With
+authenticated access to the gated Gemma checkpoint, install the HTTP and
+checkpoint dependencies, then:
 
 ```bash
 python3 -m pip install fastapi uvicorn pydantic huggingface_hub safetensors \
@@ -146,13 +159,16 @@ Pallas/Mosaic performance.
   not.
 - The Pallas W4A16 experiment regressed performance and is not the recommended
   path.
-- Results describe this implementation and workload, not the v6e hardware limit.
+- Results describe this implementation and workload on a v6e-1, not the hardware
+  limit of that chip and not a v5e-1 result.
 
 ## Supporting TPU infrastructure
 
-The repository also retains the `tpu-management` skill and `tpu-devops` MCP
+The repository also carries the `tpu-management` skill and `tpu-devops` MCP
 server used to provision flex-start TPU VMs, verify JAX devices, inspect logs,
-run vLLM baselines, and clean up capacity:
+run vLLM baselines, and clean up capacity. It defaults to this repo's target
+(`ACCELERATOR_TYPE=v5e-1`, `TENSOR_PARALLEL_SIZE=1`, `GOOGLE_CLOUD_ZONE=us-west4-a`,
+`MODEL_NAME=google/gemma-4-E2B-it`), overridable per env var:
 
 ```bash
 ./project-setup.sh /path/to/project --project <gcp-project-id>

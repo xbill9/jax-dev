@@ -62,12 +62,53 @@ if not PROJECT_ID:
         "No GCP project configured: set GOOGLE_CLOUD_PROJECT or run "
         "`gcloud config set project <id>`. All gcloud-backed tools will fail until then."
     )
-ZONE = os.getenv("GOOGLE_CLOUD_ZONE", "europe-west4-a")
-REGION = os.getenv("GOOGLE_CLOUD_REGION", "europe-west4")
-MODEL_NAME = os.getenv("MODEL_NAME", "google/gemma-4-31B-it")
+# v5e-1 flex-start capacity has only been granted in us-west4-a; the v6e zones are
+# in europe-west4. Override with GOOGLE_CLOUD_ZONE when targeting another family.
+ZONE = os.getenv("GOOGLE_CLOUD_ZONE", "us-west4-a")
+REGION = os.getenv("GOOGLE_CLOUD_REGION", "us-west4")
+# A v5e-1 chip has 16GB of HBM, so the default payload is an E2B-class checkpoint,
+# not the 31B this server used to assume. Raise it with MODEL_NAME on bigger shapes.
+MODEL_NAME = os.getenv("MODEL_NAME", "google/gemma-4-E2B-it")
 HF_SECRET_ID = "hf-token"
-ACCELERATOR_TYPE = os.getenv("ACCELERATOR_TYPE", "v6e-8")
-TENSOR_PARALLEL_SIZE = int(os.getenv("TENSOR_PARALLEL_SIZE", "8"))
+ACCELERATOR_TYPE = os.getenv("ACCELERATOR_TYPE", "v5e-1")
+TENSOR_PARALLEL_SIZE = int(os.getenv("TENSOR_PARALLEL_SIZE", "1"))
+# Queued-resource runtime image, which is per TPU family — a v6e image will not
+# boot a v5e node. Derived from ACCELERATOR_TYPE unless overridden.
+_QR_RUNTIME_VERSIONS = {"v6e": "v2-alpha-tpuv6e", "v5e": "v2-alpha-tpuv5-lite", "v5p": "v2-alpha-tpuv5"}
+
+
+def _qr_runtime_version(accelerator: str = "") -> str:
+    """Runtime image for a queued resource of this accelerator family. gcloud spells
+    v5e as v5litepod, so both spellings are accepted."""
+    override = os.getenv("TPU_RUNTIME_VERSION")
+    if override:
+        return override
+    return _QR_RUNTIME_VERSIONS.get(_family(accelerator or ACCELERATOR_TYPE), "v2-alpha-tpuv6e")
+
+
+def _family(accelerator: str) -> str:
+    """Normalizes an accelerator string to its family ('v5litepod-1' -> 'v5e')."""
+    family = accelerator.lower().split("-")[0]
+    return "v5e" if family == "v5litepod" else family
+
+
+# Zone-quota metric, which is also per family: a sweep filtered on the v6e metric
+# finds the v6e zones no matter what shape it then tries to create. Names verified
+# against `gcloud beta quotas info list --service=tpu.googleapis.com` — note v5e is
+# "V5sLitepod", not "V5Litepod".
+_TPU_QUOTA_IDS = {
+    "v6e": "TPUV6EPerProjectPerZoneForTPUAPI",
+    "v5e": "TPUV5sLitepodPerProjectPerZoneForTPUAPI",
+    "v5p": "TPUV5PPerProjectPerZoneForTPUAPI",
+}
+
+
+def _quota_id_for(accelerator: str = "") -> str:
+    """Zone-quota metric for this accelerator's family, defaulting to the configured
+    ACCELERATOR_TYPE. Accepts either v5e spelling."""
+    return _TPU_QUOTA_IDS.get(_family(accelerator or ACCELERATOR_TYPE), _TPU_QUOTA_IDS["v6e"])
+
+
 # Bare JAX dev VMs (workload="jax"). No docker, no vLLM, no HF token.
 # Ubuntu 22.04's system interpreter is 3.10, which pins JAX to an old release;
 # the startup script installs this version from deadsnakes instead and pip-installs
@@ -368,7 +409,7 @@ async def discover_vllm_url() -> Optional[str]:
     except Exception as e:
         logger.error(f"Discovery error: {e}")
 
-    # Fallback: RUNNING GCE flex-start TPU VM instances (the recommended v6e/v5p path).
+    # Fallback: RUNNING GCE flex-start TPU VM instances (the default path; v5e/v6e/v5p).
     gce_cmd = [
         "gcloud",
         "compute",
@@ -479,7 +520,9 @@ async def save_hf_token(token: str) -> str:
 
 @mcp.tool(title="Generate TPU VM deployment command", annotations=READ_ONLY)
 async def get_vllm_deployment_config(service_name: str = "vllm-gemma4-qr", model_name: str = MODEL_NAME) -> str:
-    """Generates the gcloud command for a single-host TPU v6e vLLM deployment.
+    """Generates the gcloud queued-resource command for a single-host vLLM deployment
+    on the configured accelerator. This is the vLLM/docker path; the repo's default
+    v5e-1 target serves with bare JAX instead (`create_tpu_vm_instance(workload="jax")`).
 
     The startup script fetches the Hugging Face token from Secret Manager on the VM
     at boot, so the secret never appears in this output or in instance metadata.
@@ -496,7 +539,7 @@ async def get_vllm_deployment_config(service_name: str = "vllm-gemma4-qr", model
     cmd = (
         f"gcloud alpha compute tpus tpu-vm create {service_name} \\\n"
         f"  --accelerator-type={ACCELERATOR_TYPE} \\\n"
-        f"  --version=v2-alpha-tpuv6e \\\n"
+        f"  --version={_qr_runtime_version()} \\\n"
         f"  --zone={ZONE} \\\n"
         f"  --project={PROJECT_ID} \\\n"
         f"  --metadata=startup-script='{startup_script}'"
@@ -548,7 +591,7 @@ async def _create_queued_resource(
         accel_chips = int(ACCELERATOR_TYPE.rsplit("-", 1)[-1])
     except ValueError:
         accel_chips = None
-    min_chips = _min_chips_for_model(selected_model)
+    min_chips = _min_chips_for_model(selected_model, ACCELERATOR_TYPE)
     if accel_chips is not None and accel_chips < min_chips:
         return (
             f"❌ `{selected_model}` needs ~{min_chips} chips but `{ACCELERATOR_TYPE}` has {accel_chips} — "
@@ -573,7 +616,7 @@ async def _create_queued_resource(
         "create",
         resource_id,
         f"--zone={zone}",
-        "--runtime-version=v2-alpha-tpuv6e",
+        f"--runtime-version={_qr_runtime_version()}",
         f"--node-id={resource_id}-node",
         f"--project={PROJECT_ID}",
         f"--accelerator-type={ACCELERATOR_TYPE}",
@@ -695,9 +738,10 @@ async def create_tpu_queued_resource(
     return await _create_queued_resource(resource_id, zone, reserved, model_name)
 
 
-# --- GCE flex-start TPU VM instances (recommended path for v6e / v5p) ---------------
+# --- GCE flex-start TPU VM instances (the default path, v5e / v6e / v5p) ------------
 # Google is migrating TPU provisioning to GCE machine types; the queued-resources API
-# is legacy (v5e-only going forward). These tools manage TPU VMs created via
+# is legacy. Both paths now reach v5e — this repo's default target is a single v5e-1
+# chip. These tools manage TPU VMs created via
 # `gcloud compute instances create --provisioning-model=FLEX_START`.
 
 # accelerator -> (GCE machine type, chips)
@@ -706,33 +750,67 @@ _GCE_MACHINE_TYPES = {
     "v6e-4": ("ct6e-standard-4t", 4),
     "v6e-8": ("ct6e-standard-8t", 8),
     "v5p-8": ("ct5p-hightpu-4t", 4),
+    # v5e is v5litepod to the TPU API but ct5lp to GCE. The single-chip shape is
+    # the narrowest one: flex-start for it has only ever been granted in
+    # us-west4-a, and the queued-resources API is the more reliable path there.
+    "v5e-1": ("ct5lp-hightpu-1t", 1),
+    "v5e-4": ("ct5lp-hightpu-4t", 4),
+    "v5e-8": ("ct5lp-hightpu-8t", 8),
 }
 _GCE_IMAGE_FLAGS = [
     "--image-project=ubuntu-os-accelerator-images",
     "--image-family=ubuntu-accel-2204-amd64-tpu-v5e-v5p-v6e",
 ]
-_GCE_TPU_FILTER = "machineType~'ct6e|ct5p'"
+_GCE_TPU_FILTER = "machineType~'ct6e|ct5p|ct5lp'"
 
 
-def _min_chips_for_model(model: str) -> int:
-    """Rough single-host chip floor for full-precision checkpoints (~32GB HBM per
-    v6e chip). Prevents the expensive failure mode of a big model on a small
-    accelerator: VM boot + image pull + ~10 min of loading before an inevitable OOM.
-    Quantized variants (QAT/int4/AWQ/GPTQ/FP8) are ~4x smaller — never blocked."""
-    lowered = model.lower()
-    if any(q in lowered for q in ("qat", "int4", "q4", "awq", "gptq", "fp8")):
+def _gce_machine_type(accelerator: str) -> Optional[tuple[str, int]]:
+    """(machine type, chips) for an accelerator, accepting either v5e spelling."""
+    key = accelerator.lower()
+    if key.startswith("v5litepod-"):
+        key = "v5e-" + key.split("-", 1)[1]
+    return _GCE_MACHINE_TYPES.get(key)
+
+
+# HBM per chip, by family. The reserve is what is gone before a single weight is
+# loaded: libtpu/XLA runtime plus the activation working set, measured at
+# 2.0 + 1.5 GB on a v6e-1 (see deploy.md). What is left is the weight budget.
+_CHIP_HBM_GB = {"v6e": 32.0, "v5e": 16.0, "v5p": 96.0}
+_CHIP_RESERVED_GB = 3.5
+# bf16 weight footprint in GB. E2B is the measured 10.21 GB from deploy.md; the
+# others are 2 bytes/param at nominal size.
+_BF16_WEIGHTS_GB = {"E2B": 10.2, "E4B": 16.0, "12B": 24.0, "26B": 52.0, "31B": 62.0}
+# Single-host shapes that actually exist, so the floor names a size you can create.
+_HOST_SHAPES = (1, 4, 8)
+
+
+def _min_chips_for_model(model: str, accelerator: str = "") -> int:
+    """Rough single-host chip floor for a checkpoint on this accelerator's family.
+    Prevents the expensive failure mode of a big model on a small accelerator: VM
+    boot + image pull + ~10 min of loading before an inevitable OOM.
+
+    Sized on the target chip's real HBM rather than a fixed 32 GB, because a v5e chip
+    has half a v6e's: a bf16 12B fits one v6e chip and OOMs on a v5e-1. Quantized
+    variants (QAT/int4/AWQ/GPTQ/FP8) are ~4x smaller but are not exempt — a 26B int4
+    is still 13 GB, which does not fit a v5e-1 either. Unknown checkpoints are never
+    blocked."""
+    weights_gb = next((gb for marker, gb in _BF16_WEIGHTS_GB.items() if marker in model), 0.0)
+    if any(q in model.lower() for q in ("qat", "int4", "q4", "awq", "gptq", "fp8")):
+        weights_gb /= 4
+    budget_gb = _CHIP_HBM_GB.get(_family(accelerator or ACCELERATOR_TYPE), 32.0) - _CHIP_RESERVED_GB
+    if weights_gb <= 0 or budget_gb <= 0:
         return 1
-    for marker, chips in (("31B", 4), ("26B", 4)):
-        if marker in model:
-            return chips
-    return 1  # 12B and below fit on a single chip
+    needed = weights_gb / budget_gb
+    if needed > _HOST_SHAPES[-1]:
+        return math.ceil(needed)  # larger than any single host: always blocks
+    return next(n for n in _HOST_SHAPES if n >= needed)
 
 
 @mcp.tool(title="Create flex-start TPU VM", annotations=WRITE)
 async def create_tpu_vm_instance(
     instance_name: Optional[str] = None,
     zone: Optional[str] = None,
-    accelerator: Annotated[str, Field(description="TPU type: v6e-1, v6e-4, v6e-8, or v5p-8")] = ACCELERATOR_TYPE,
+    accelerator: Annotated[str, Field(description="TPU type: v5e-1/4/8, v6e-1/4/8, or v5p-8")] = ACCELERATOR_TYPE,
     model_name: Optional[str] = None,
     boot_disk_size_gb: int = 200,
     max_run_duration: str = "4h",
@@ -742,7 +820,7 @@ async def create_tpu_vm_instance(
         Field(description="'vllm' serves model_name via docker; 'jax' installs a bare jax[tpu] dev environment (no docker, no HF token)"),
     ] = "vllm",
 ) -> str:
-    """Creates a flex-start TPU VM as a GCE instance (recommended path for v6e/v5p).
+    """Creates a flex-start TPU VM as a GCE instance (the default path; v5e/v6e/v5p).
     workload='vllm' auto-starts Gemma 4 serving via the vLLM startup script;
     workload='jax' instead installs a bare jax[tpu] environment and asserts the TPU
     is visible — no docker, no HF token, much faster boot.
@@ -750,10 +828,11 @@ async def create_tpu_vm_instance(
     vLLM TPU image."""
     zone = _zone(zone)
     instance_name = instance_name or ("jax-tpu-vm" if workload == "jax" else "vllm-gemma4-vm")
-    if accelerator not in _GCE_MACHINE_TYPES:
+    shape = _gce_machine_type(accelerator)
+    if shape is None:
         supported = ", ".join(sorted(_GCE_MACHINE_TYPES))
         return f"❌ Unsupported accelerator '{accelerator}'. Supported: {supported}"
-    machine_type, chips = _GCE_MACHINE_TYPES[accelerator]
+    machine_type, chips = shape
 
     selected_model = model_name or MODEL_NAME
     if workload == "jax":
@@ -764,7 +843,7 @@ async def create_tpu_vm_instance(
         except RuntimeError as e:
             return f"❌ Aborted: {e}"
     else:
-        min_chips = _min_chips_for_model(selected_model)
+        min_chips = _min_chips_for_model(selected_model, accelerator)
         if chips < min_chips:
             return (
                 f"❌ `{selected_model}` needs ~{min_chips} chips but `{accelerator}` has {chips} — "
@@ -840,7 +919,7 @@ async def create_tpu_vm_instance(
 
 @mcp.tool(title="List TPU VM instances", annotations=READ_ONLY)
 async def list_tpu_vm_instances(zone: Optional[str] = None) -> str:
-    """Lists GCE TPU VM instances (ct6e/ct5p machine types) across all zones, or one zone."""
+    """Lists GCE TPU VM instances (ct5lp/ct6e/ct5p machine types) across all zones, or one zone."""
     cmd = [
         "gcloud",
         "compute",
@@ -1168,9 +1247,12 @@ async def verify_jax_tpu(
 
 async def _get_zones_with_available_quota_list(
     service: str = "tpu.googleapis.com",
-    quota_id: str = "TPUV6EPerProjectPerZoneForTPUAPI",
+    quota_id: Optional[str] = None,
 ) -> list[str]:
-    """Helper to retrieve a list of GCP zones that have a non-zero quota for a specific metric."""
+    """Helper to retrieve a list of GCP zones that have a non-zero quota for a specific
+    metric. Defaults to the configured accelerator family's metric, not a hardcoded
+    v6e one — otherwise a v5e sweep searches the v6e zones."""
+    quota_id = quota_id or _quota_id_for()
     cmd = [
         "gcloud",
         "beta",
@@ -1212,9 +1294,13 @@ async def _get_zones_with_available_quota_list(
 @mcp.tool(title="List zones with quota", annotations=READ_ONLY)
 async def get_zones_with_available_quota(
     service: Annotated[str, Field(description="GCP service to query")] = "tpu.googleapis.com",
-    quota_id: Annotated[str, Field(description="Quota ID to filter by")] = "TPUV6EPerProjectPerZoneForTPUAPI",
+    quota_id: Annotated[
+        Optional[str],
+        Field(description="Quota ID to filter by; defaults to the configured accelerator family's metric"),
+    ] = None,
 ) -> str:
     """Retrieves the GCP zones that have a non-zero quota limit for a specific metric."""
+    quota_id = quota_id or _quota_id_for()
     zones = await _get_zones_with_available_quota_list(service, quota_id)
     if not zones:
         return f"No zones/locations found with non-zero quota limit for `{quota_id}`."
@@ -1268,13 +1354,17 @@ async def _update_status_file(zone: str, success_str: str, detail_str: str) -> N
 async def find_tpu(
     resource_id: str = "vllm-gemma4-qr",
     service: Annotated[str, Field(description="GCP service to query for quota")] = "tpu.googleapis.com",
-    quota_id: Annotated[str, Field(description="Quota ID to filter zones by")] = "TPUV6EPerProjectPerZoneForTPUAPI",
+    quota_id: Annotated[
+        Optional[str],
+        Field(description="Quota ID to filter zones by; defaults to the configured accelerator family's metric"),
+    ] = None,
 ) -> str:
     """Sweeps every zone with available quota, creating the queued resource and polling
     until one reaches ACTIVE. Side effects: deletes the created resource in each zone
     that fails or times out; on success switches the server's default zone to the
     winning zone; records failed zones in ~/.cache/tpu-devops/tpu_zones_status.md and
     skips them on later sweeps."""
+    quota_id = quota_id or _quota_id_for()
     zones = await _get_zones_with_available_quota_list(service, quota_id)
     if not zones:
         return f"❌ Aborted: No zones found with non-zero quota for `{quota_id}`."
@@ -1380,7 +1470,7 @@ async def find_tpu(
 @mcp.tool(title="Find flex-start TPU VM capacity", annotations=WRITE)
 async def find_tpu_vm(
     instance_name: Optional[str] = None,
-    accelerator: Annotated[str, Field(description="TPU type: v6e-1, v6e-4, v6e-8, or v5p-8")] = ACCELERATOR_TYPE,
+    accelerator: Annotated[str, Field(description="TPU type: v5e-1/4/8, v6e-1/4/8, or v5p-8")] = ACCELERATOR_TYPE,
     zones: Annotated[
         Optional[list[str]],
         Field(description="Zones to try in order; defaults to the zones with TPU quota"),
@@ -1401,7 +1491,11 @@ async def find_tpu_vm(
     On success, switches the server's default zone to the winning zone. Follow up
     with `wait_for_vllm_ready` (or `wait_for_jax_ready` for workload='jax')."""
     instance_name = instance_name or ("jax-tpu-vm" if workload == "jax" else "vllm-gemma4-vm")
-    candidate_zones = zones or await _get_zones_with_available_quota_list()
+    # Sweep the zones with quota for *this* accelerator's family — the v6e metric
+    # would send a v5e sweep to europe-west4, where the shape does not exist.
+    candidate_zones = zones or await _get_zones_with_available_quota_list(
+        quota_id=_quota_id_for(accelerator)
+    )
     if not candidate_zones:
         return "❌ No candidate zones: no zones with TPU quota found — pass `zones` explicitly."
 
@@ -1590,8 +1684,8 @@ async def describe_queued_resource(resource_id: str = "vllm-gemma4-qr", zone: Op
 @mcp.tool(title="Estimate deployment cost", annotations=READ_ONLY)
 async def estimate_deployment_cost(
     hours: Annotated[float, Field(gt=0)] = 1.0,
-    tpu_type: Literal["v6e", "v5e", "v5p"] = "v6e",
-    topology: Annotated[str, Field(pattern=r"^\d+(x\d+)*$", description="Chip grid, e.g. '2x4'")] = "2x4",
+    tpu_type: Literal["v6e", "v5e", "v5p"] = "v5e",
+    topology: Annotated[str, Field(pattern=r"^\d+(x\d+)*$", description="Chip grid, e.g. '2x4'")] = "1",
     is_flex: bool = True,
 ) -> str:
     """Estimates the cost of a TPU deployment. `topology` is a chip grid like '2x4'."""
@@ -2076,7 +2170,8 @@ async def get_help() -> str:
         f"  - *Current Value:* `{REGION}`\n"
         f"- **`MODEL_NAME`**: Default Hugging Face repository or path.\n"
         f"  - *Current Value:* `{MODEL_NAME}`\n"
-        f"- **`ACCELERATOR_TYPE`**: TPU Accelerator type.\n"
+        f"- **`ACCELERATOR_TYPE`**: TPU Accelerator type (flex-start shapes: v5e-1/4/8, "
+        "v6e-1/4/8, v5p-8).\n"
         f"  - *Current Value:* `{ACCELERATOR_TYPE}`\n"
         f"- **`TENSOR_PARALLEL_SIZE`**: Tensor parallel size for serving.\n"
         f"  - *Current Value:* `{TENSOR_PARALLEL_SIZE}`\n"
@@ -2098,7 +2193,7 @@ async def get_help() -> str:
         "(workload='jax' VMs don't need it).\n\n"
         "---\n\n"
         "### 🧰 Available MCP Tools\n\n"
-        "#### 🐳 Capacity & Lifecycle — GCE flex-start TPU VMs (recommended for v6e/v5p)\n"
+        "#### 🐳 Capacity & Lifecycle — GCE flex-start TPU VMs (v5e/v6e/v5p)\n"
         "- **`create_tpu_vm_instance`**: Creates a flex-start TPU VM via GCE; workload='vllm' auto-starts "
         "serving, workload='jax' installs a bare jax[tpu] dev environment instead.\n"
         "- **`find_tpu_vm`**: Sweeps zones attempting flex-start creation until one grants capacity "
@@ -2108,7 +2203,7 @@ async def get_help() -> str:
         "same JAX stack minus libtpu — correctness work off the TPU, for cents an hour.\n"
         "- **`wait_for_jax_ready`**: Polls the serial marker until the JAX environment is ready (or failed).\n"
         "- **`verify_jax_tpu`**: Re-runs the JAX device check over SSH (asserts jax.devices() sees a TPU).\n"
-        "- **`list_tpu_vm_instances`**: Lists GCE TPU VM instances (ct6e/ct5p) with IPs and status.\n"
+        "- **`list_tpu_vm_instances`**: Lists GCE TPU VM instances (ct5lp/ct6e/ct5p) with IPs and status.\n"
         "- **`destroy_tpu_vm_instance`**: Deletes a GCE TPU VM instance (stops flex-start billing).\n"
         "- **`get_tpu_vm_serial_log`**: Tails a GCE TPU VM's serial console (boot/vLLM progress when SSH is blocked).\n"
         "- **`get_tpu_vm_endpoint`**: Resolves and health-probes a GCE TPU VM's vLLM endpoint.\n\n"

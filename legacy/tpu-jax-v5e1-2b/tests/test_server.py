@@ -7,10 +7,12 @@ pure logic, tool registration, template rendering, and repo hygiene.
 
 import asyncio
 import filecmp
+import os
 import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -92,13 +94,36 @@ class HelperTests(unittest.TestCase):
         self.assertIn("$21.60", result)  # 8 chips * 1.35 * 2h
         self.assertTrue(run(server.estimate_deployment_cost(topology="0x4")).startswith("❌"))
 
-    def test_min_chips_for_model(self):
-        self.assertEqual(server._min_chips_for_model("google/gemma-4-31B-it"), 4)
-        self.assertEqual(server._min_chips_for_model("google/gemma-4-12B-it"), 1)
-        self.assertEqual(server._min_chips_for_model("google/gemma-4-E2B-it"), 1)
-        # Quantized checkpoints fit on a single chip regardless of size
-        self.assertEqual(server._min_chips_for_model("google/gemma-4-26B-it-qat-q4_0"), 1)
-        self.assertEqual(server._min_chips_for_model("google/gemma-4-31B-it-int4"), 1)
+    def test_min_chips_for_model_on_v6e(self):
+        chips = lambda m: server._min_chips_for_model(m, "v6e-8")
+        self.assertEqual(chips("google/gemma-4-31B-it"), 4)
+        self.assertEqual(chips("google/gemma-4-12B-it"), 1)
+        self.assertEqual(chips("google/gemma-4-E2B-it"), 1)
+        # int4 is ~4x smaller, so these drop back to a single 32GB chip
+        self.assertEqual(chips("google/gemma-4-26B-it-qat-q4_0"), 1)
+        self.assertEqual(chips("google/gemma-4-31B-it-int4"), 1)
+
+    def test_min_chips_for_model_is_sized_on_the_target_chip(self):
+        # A v5e chip has half a v6e's HBM, so the same checkpoint needs more of them.
+        # bf16 12B is the case the old fixed-32GB floor waved through onto a v5e-1.
+        self.assertEqual(server._min_chips_for_model("google/gemma-4-12B-it", "v6e-1"), 1)
+        self.assertEqual(server._min_chips_for_model("google/gemma-4-12B-it", "v5e-1"), 4)
+        # Quantized is not an automatic pass either: 26B int4 is still ~13GB.
+        self.assertEqual(server._min_chips_for_model("google/gemma-4-26B-it-qat-q4_0", "v5e-1"), 4)
+        # The intended v5e-1 payload, and bf16 E2B, both still fit one chip.
+        self.assertEqual(server._min_chips_for_model("google/gemma-4-E2B-it-qat-w4a16-ct", "v5e-1"), 1)
+        self.assertEqual(server._min_chips_for_model("google/gemma-4-E2B-it", "v5e-1"), 1)
+        # Unknown checkpoints are never blocked.
+        self.assertEqual(server._min_chips_for_model("some/unknown-model", "v5e-1"), 1)
+
+    def test_quota_metric_follows_the_accelerator_family(self):
+        # A v5e sweep filtered on the v6e metric searches the wrong zones entirely.
+        self.assertEqual(server._quota_id_for("v5e-1"), "TPUV5sLitepodPerProjectPerZoneForTPUAPI")
+        self.assertEqual(server._quota_id_for("v5litepod-8"), "TPUV5sLitepodPerProjectPerZoneForTPUAPI")
+        self.assertEqual(server._quota_id_for("v6e-8"), "TPUV6EPerProjectPerZoneForTPUAPI")
+        self.assertEqual(server._quota_id_for("v5p-8"), "TPUV5PPerProjectPerZoneForTPUAPI")
+        # Unknown families fall back rather than sweeping nothing.
+        self.assertEqual(server._quota_id_for("v4-8"), "TPUV6EPerProjectPerZoneForTPUAPI")
 
     def test_create_blocks_model_too_big_for_accelerator(self):
         result = run(
@@ -108,6 +133,20 @@ class HelperTests(unittest.TestCase):
         )
         self.assertTrue(result.startswith("❌"))
         self.assertIn("chips", result)
+
+    def test_v5e_flex_shapes_and_runtime_image(self):
+        # v5e is ct5lp to GCE and v5litepod to the TPU API; both spellings resolve.
+        self.assertEqual(server._gce_machine_type("v5e-1"), ("ct5lp-hightpu-1t", 1))
+        self.assertEqual(server._gce_machine_type("v5litepod-8"), ("ct5lp-hightpu-8t", 8))
+        self.assertIsNone(server._gce_machine_type("v5e-2"))
+        # A v6e runtime image will not boot a v5e node, so it comes from the family.
+        self.assertEqual(server._qr_runtime_version("v5e-1"), "v2-alpha-tpuv5-lite")
+        self.assertEqual(server._qr_runtime_version("v5litepod-1"), "v2-alpha-tpuv5-lite")
+        self.assertEqual(server._qr_runtime_version("v6e-8"), "v2-alpha-tpuv6e")
+
+    def test_qr_runtime_version_env_override_wins(self):
+        with mock.patch.dict(os.environ, {"TPU_RUNTIME_VERSION": "v2-alpha-custom"}):
+            self.assertEqual(server._qr_runtime_version("v5e-1"), "v2-alpha-custom")
 
     def test_served_model_id_falls_back_to_none_when_unreachable(self):
         self.assertIsNone(run(server._get_served_model_id("http://127.0.0.1:9")))

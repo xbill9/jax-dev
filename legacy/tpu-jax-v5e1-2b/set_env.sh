@@ -39,15 +39,17 @@ cat <<EOF > .env
 GOOGLE_GENAI_USE_VERTEXAI=true
 GOOGLE_CLOUD_PROJECT=$PROJECT_ID
 GOOGLE_CLOUD_LOCATION=europe-west4
-GOOGLE_CLOUD_REGION=europe-west4
-GOOGLE_CLOUD_ZONE=europe-west4-a
-MODEL=google/gemma-4-E4B-it
-MODEL_NAME=google/gemma-4-E4B-it
+# TPU zone/region: v5e-1 flex-start capacity is granted in us-west4-a. Vertex
+# (GOOGLE_CLOUD_LOCATION above) stays in europe-west4 — they are unrelated.
+GOOGLE_CLOUD_REGION=us-west4
+GOOGLE_CLOUD_ZONE=us-west4-a
+MODEL=google/gemma-4-E2B-it
+MODEL_NAME=google/gemma-4-E2B-it
 GENAI_MODEL="gemini-2.5-flash"
 GOOGLE_API_KEY=$GOOGLE_API_KEY
 GEMINI_API_KEY=$GOOGLE_API_KEY
 MCP_SERVER_URL=$MCP_SERVER_URL
-ACCELERATOR_TYPE=v6e-1
+ACCELERATOR_TYPE=v5e-1
 TENSOR_PARALLEL_SIZE=1
 EOF
 chmod 600 .env

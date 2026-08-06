@@ -13,9 +13,9 @@
 #                           server at user scope (all projects) instead of one project.
 #   --project ID            GOOGLE_CLOUD_PROJECT for the agent (default: gcloud config,
 #                           else the server.py built-in default).
-#   --model NAME            MODEL_NAME            (default: google/gemma-4-31B-it)
-#   --accelerator TYPE      ACCELERATOR_TYPE      (default: v6e-8)
-#   --tp N                  TENSOR_PARALLEL_SIZE  (default: 8)
+#   --model NAME            MODEL_NAME            (default: google/gemma-4-E2B-it)
+#   --accelerator TYPE      ACCELERATOR_TYPE      (default: v5e-1)
+#   --tp N                  TENSOR_PARALLEL_SIZE  (default: 1)
 #   --server-name NAME      MCP server name       (default: tpu-devops)
 #   --skip-deps             Don't check Python dependencies.
 #   -h, --help              Show this help.
@@ -47,9 +47,9 @@ TARGET_DIR=""
 GLOBAL=0
 SKIP_DEPS=0
 GCP_PROJECT=""
-MODEL_NAME="google/gemma-4-31B-it"
-ACCELERATOR_TYPE="v6e-8"
-TENSOR_PARALLEL_SIZE="8"
+MODEL_NAME="google/gemma-4-E2B-it"
+ACCELERATOR_TYPE="v5e-1"
+TENSOR_PARALLEL_SIZE="1"
 SERVER_NAME="tpu-devops"
 
 while [ $# -gt 0 ]; do

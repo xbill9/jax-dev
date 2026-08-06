@@ -6,9 +6,10 @@ Guidance for Claude Code when working in this repository.
 
 This repository packages one Claude Code skill (`tpu-management`) and one **Model Context Protocol (MCP) server** (`tpu-devops`, a FastMCP app in `server.py`). Together they:
 
-1. **Operate TPU infrastructure:** find, provision, and destroy Google Cloud TPU capacity (flex-start VMs, queued resources) and run Gemma 4 vLLM serving on it.
-2. **Run bare JAX on TPU:** provision flex-start VMs with `workload="jax"` — the startup script installs a current CPython + `jax[tpu]` and asserts a TPU device is visible (`wait_for_jax_ready`, `verify_jax_tpu`). No docker, no HF token.
-3. **Do SRE diagnostics:** verify model health, fetch vLLM/system/Cloud Logging logs, and use the self-hosted Gemma 4 model to triage them (`analyze_cloud_logging`).
+1. **Operate TPU infrastructure:** find, provision, and destroy Google Cloud TPU capacity (flex-start VMs, queued resources).
+2. **Serve Gemma 4 with pure JAX — the default path:** provision flex-start VMs with `workload="jax"` — the startup script installs a current CPython + `jax[tpu]` and asserts a TPU device is visible (`wait_for_jax_ready`, `verify_jax_tpu`). No docker, no HF token. `jax_openai_server.py` then serves the QAT checkpoint over an OpenAI-compatible API.
+3. **Serve with vLLM — the alternative path:** `workload="vllm"` auto-starts the vLLM TPU docker image on a multi-chip shape. Requires an `hf-token` Secret Manager secret. Note the tested vLLM TPU stack cannot load the QAT export the JAX path is built around; see the serving-flags section below.
+4. **Do SRE diagnostics:** verify model health, fetch vLLM/system/Cloud Logging logs, and use the self-hosted Gemma 4 model to triage them (`analyze_cloud_logging`).
 
 ## Repository Layout & the Snapshot Sync Model
 
@@ -34,16 +35,37 @@ make init TARGET=/path/to/project ARGS='--project <id>'  # install skill + regis
 claude plugin validate .   # check .claude-plugin manifests
 ```
 
-The server's config comes from env vars: `GOOGLE_CLOUD_PROJECT`, `MODEL_NAME`, `ACCELERATOR_TYPE`, `TENSOR_PARALLEL_SIZE`, `JAX_PYTHON_VERSION` / `JAX_PIP_SPEC` / `JAX_PIP_EXTRAS` (interpreter and packages for `workload="jax"` VMs).
+The server's config comes from env vars: `GOOGLE_CLOUD_PROJECT`, `MODEL_NAME`, `ACCELERATOR_TYPE`, `TENSOR_PARALLEL_SIZE`, `TPU_RUNTIME_VERSION` (overrides the per-family queued-resource image), `JAX_PYTHON_VERSION` / `JAX_PIP_SPEC` / `JAX_PIP_EXTRAS` (interpreter and packages for `workload="jax"` VMs).
 
-## Technical Standards: vLLM & Gemma 4 Tool Calling
+**Default deployment target: a single-chip v5e flex-start VM** — `ACCELERATOR_TYPE=v5e-1`
+(`ct5lp-hightpu-1t`, 16 GB HBM), `TENSOR_PARALLEL_SIZE=1`, `GOOGLE_CLOUD_ZONE=us-west4-a`,
+`MODEL_NAME=google/gemma-4-E2B-it`. See `deploy.md` for the provisioning commands and the
+HBM budget that decides which QAT checkpoint fits. All *measured* numbers in this repo
+(README, `benchmarks/runs/**`) were taken on a v6e-1 and are not v5e-1 results.
 
-When managing TPU deployments or customizing vLLM serving, apply these vLLM parameters for stable Gemma 4 tool integration:
+## Technical Standards: Serving Flags
 
-- **Optimization flags:** `--tensor-parallel-size 8` (TPU v6e-8), `--disable_chunked_mm_input`, `--max-model-len 16384`
+**Default path — pure JAX on the v5e-1.** `jax_openai_server.py`, no docker, no vLLM:
+
+```bash
+python3 jax_openai_server.py \
+  --model google/gemma-4-E2B-it-qat-w4a16-ct \
+  --kv-cache-dtype int8 --quant-mode w4a16 --max-model-len 8192 --port 8000
+```
+
+`--quant-mode w4a16` must match the checkpoint suffix; `-w4a16-ct` is what fits 16 GB of
+HBM with KV headroom (see `deploy.md`). `--ple-bits` and `--int8-lm-head` are opt-in and
+**not** numerics-preserving — measure before enabling either.
+
+**Alternative path — vLLM.** Only for docker serving on a multi-chip shape. Scale
+`--tensor-parallel-size` to the chip count (`TENSOR_PARALLEL_SIZE`: 1 on the default
+v5e-1, 8 on a v6e-8), then apply these parameters for stable Gemma 4 tool integration:
+
+- **Optimization flags:** `--disable_chunked_mm_input`, `--max-model-len 16384`
 - **Tool parsing:** `--enable-auto-tool-choice`, `--tool-call-parser gemma4`, and `--reasoning-parser gemma4` for native function-calling compatibility
 - **Multimodal configuration:** `--limit-mm-per-prompt '{"image":4,"audio":1}'` and `--max_num_batched_tokens 4096`
-- **Universal SRE help:** the agent exposes a standardized `get_help` tool describing its active configuration environment variables and all exposed tools
+
+**Universal SRE help:** the agent exposes a standardized `get_help` tool describing its active configuration environment variables and all exposed tools.
 
 ## Coding Standards
 

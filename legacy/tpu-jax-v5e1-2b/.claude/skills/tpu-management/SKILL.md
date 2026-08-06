@@ -54,17 +54,19 @@ Manual alternative:
 ```bash
 claude mcp add tpu-devops \
   --env GOOGLE_CLOUD_PROJECT=<project-id> \
-  --env MODEL_NAME=google/gemma-4-31B-it \
-  --env ACCELERATOR_TYPE=v6e-8 \
-  --env TENSOR_PARALLEL_SIZE=8 \
+  --env MODEL_NAME=google/gemma-4-E2B-it \
+  --env ACCELERATOR_TYPE=v5e-1 \
+  --env TENSOR_PARALLEL_SIZE=1 \
   -- python .claude/skills/tpu-management/mcp/server.py
 ```
 
 Requires: `pip install -r mcp/requirements.txt`, an authenticated
 `gcloud` CLI with alpha components (`gcloud components install alpha`), and the TPU API
 enabled. The server reads config from env vars: `GOOGLE_CLOUD_PROJECT` (falls back to
-the active gcloud config), `GOOGLE_CLOUD_ZONE` (default `europe-west4-a`),
-`GOOGLE_CLOUD_REGION`, `MODEL_NAME`, `ACCELERATOR_TYPE`, `TENSOR_PARALLEL_SIZE`.
+the active gcloud config), `GOOGLE_CLOUD_ZONE` (default `us-west4-a`, where the
+single-chip v5e capacity is), `GOOGLE_CLOUD_REGION`, `MODEL_NAME`, `ACCELERATOR_TYPE`,
+`TENSOR_PARALLEL_SIZE`, and `TPU_RUNTIME_VERSION` (overrides the per-family
+queued-resource runtime image).
 A Hugging Face token must exist as Secret Manager secret `hf-token` (save one with the
 `save_hf_token` tool) before any resource creation.
 
@@ -73,7 +75,7 @@ A Hugging Face token must exist as Secret Manager secret `hf-token` (save one wi
 1. **Status first.** `get_system_status` (dashboard) or `list_queued_resources` /
    `find_gpu`. Never create before checking what already exists.
 2. **Acquire capacity.**
-   - Preferred (v6e/v5p): `create_tpu_vm_instance` — GCE flex-start VM with vLLM
+   - Preferred (v5e/v6e/v5p): `create_tpu_vm_instance` — GCE flex-start VM with vLLM
      auto-start — or `find_tpu_vm` to sweep zones until one grants capacity (family
      quota is only discoverable by attempting creation). Then `wait_for_vllm_ready`
      polls until serving is up; `get_tpu_vm_serial_log` for manual watching.
@@ -114,7 +116,7 @@ A Hugging Face token must exist as Secret Manager secret `hf-token` (save one wi
 
 ## MCP tool catalog (by task)
 
-**Capacity & lifecycle (GCE flex-start — recommended for v6e/v5p):**
+**Capacity & lifecycle (GCE flex-start — the default path; v5e/v6e/v5p):**
 `create_tpu_vm_instance` (creates the VM with the proven flags: 200GB boot disk,
 docker-installing startup script, cloud-platform scopes; `workload="jax"` for a bare
 JAX VM instead), `find_tpu_vm` (zone sweep, same workload choice),
@@ -122,7 +124,7 @@ JAX VM instead), `find_tpu_vm` (zone sweep, same workload choice),
 `verify_jax_tpu` (assert jax.devices() sees a TPU), `list_tpu_vm_instances`,
 `destroy_tpu_vm_instance`, `get_tpu_vm_serial_log`, `get_tpu_vm_endpoint`
 
-**Capacity & lifecycle (queued resources — legacy, v5e):** `find_tpu`,
+**Capacity & lifecycle (queued resources — legacy):** `find_tpu`,
 `create_tpu_queued_resource` (non-destructive),
 `manage_queued_resource` (destructive cleanup), `destroy_queued_resource`,
 `list_queued_resources`, `describe_queued_resource`,
@@ -265,6 +267,19 @@ guide's command as written will fail; apply all of these:
 - Stuck in `WAITING_FOR_RESOURCES`/`PROVISIONING` or `STOCKOUT`: usually the
   `GPUS_ALL_REGIONS` global quota is 0 — see the Troubleshooting section of
   `references/tpu-guide.md` before retrying other zones.
-- v5e uses the legacy queued-resources API and separate quota metrics; v6e/v5p use GCE
-  machine types (`ct6e-standard-4t`, `ct5p-hightpu-4t`). Zone/family table is in the
+- All three families now provision as GCE machine types (`ct5lp-hightpu-1t`,
+  `ct6e-standard-4t`, `ct5p-hightpu-4t`); v5e also still works over the legacy
+  queued-resources API, where it is spelled `v5litepod-N` and needs the
+  `v2-alpha-tpuv5-lite` runtime image — a v6e image will not boot a v5e node.
+  `create_tpu_queued_resource` derives that image from `ACCELERATOR_TYPE`.
+- Each family has its own zone-quota metric, and `get_zones_with_available_quota`,
+  `find_tpu`, and `find_tpu_vm` now derive it from the accelerator
+  (v5e → `TPUV5sLitepodPerProjectPerZoneForTPUAPI`, note the `s`; v6e →
+  `TPUV6EPerProjectPerZoneForTPUAPI`; v5p → `TPUV5PPerProjectPerZoneForTPUAPI`).
+  Override with `quota_id`, or skip the sweep with `zones=["us-west4-a"]` — the only
+  zone where single-chip v5e flex-start has been granted. Zone/family table is in the
   reference guide.
+- A v5e chip has 16 GB HBM, half a v6e chip, and `_min_chips_for_model` is sized on
+  the target chip's HBM: a bf16 12B passes on v6e-1 and is blocked on v5e-1, and
+  int4 is no longer an automatic pass (26B int4 is still ~13 GB). Prefer the QAT E2B
+  checkpoint on v5e-1 (see `deploy.md`). Unknown checkpoints are never blocked.
