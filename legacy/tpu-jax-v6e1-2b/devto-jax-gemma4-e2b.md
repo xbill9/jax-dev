@@ -330,20 +330,20 @@ that question by itself.
 
 ### Repository
 
-- **Engine:** [`ports/gemma4/jax_e_model.py`](https://github.com/xbill9/tpu-jax/blob/main/ports/gemma4/jax_e_model.py) · **loader:** [`ports/gemma4/jax_e_loader.py`](https://github.com/xbill9/tpu-jax/blob/main/ports/gemma4/jax_e_loader.py)
-- **Serving engine:** [`jax_engine.py`](https://github.com/xbill9/tpu-jax/blob/main/jax_engine.py) · **server:** [`jax_openai_server.py`](https://github.com/xbill9/tpu-jax/blob/main/jax_openai_server.py)
-- **Tests:** [`tests/test_kv_cache_parity.py`](https://github.com/xbill9/tpu-jax/blob/main/tests/test_kv_cache_parity.py) (cached decode vs full re-forward) · [`tests/test_jax_engine.py`](https://github.com/xbill9/tpu-jax/blob/main/tests/test_jax_engine.py) (load path, torch-free assertion) · [`tests/test_openai_server.py`](https://github.com/xbill9/tpu-jax/blob/main/tests/test_openai_server.py) (endpoints, SSE)
-- **Benchmark harness:** [`ports/gemma4/jax_e_benchmark_sweep_v2.py`](https://github.com/xbill9/tpu-jax/blob/main/ports/gemma4/jax_e_benchmark_sweep_v2.py)
-- **Corrected validation report:** [`benchmarks/runs/2026-07-29-kv-quant-v6e1/REPORT.md`](https://github.com/xbill9/tpu-jax/blob/main/benchmarks/runs/2026-07-29-kv-quant-v6e1/REPORT.md)
-- **Real-weight HTTP validation:** [`benchmarks/runs/2026-07-29-real-http-v6e1/REPORT.md`](https://github.com/xbill9/tpu-jax/blob/main/benchmarks/runs/2026-07-29-real-http-v6e1/REPORT.md)
-- **vLLM baseline data:** [`benchmarks/reports/2026-07-21-gemma4-e2b-v6e1.json`](https://github.com/xbill9/tpu-jax/blob/main/benchmarks/reports/2026-07-21-gemma4-e2b-v6e1.json)
+- **Engine:** [`ports/gemma4/jax_e_model.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/ports/gemma4/jax_e_model.py) · **loader:** [`ports/gemma4/jax_e_loader.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/ports/gemma4/jax_e_loader.py)
+- **Serving engine:** [`jax_engine.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/jax_engine.py) · **server:** [`jax_openai_server.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/jax_openai_server.py)
+- **Tests:** [`tests/test_kv_cache_parity.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/tests/test_kv_cache_parity.py) (cached decode vs full re-forward) · [`tests/test_jax_engine.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/tests/test_jax_engine.py) (load path, torch-free assertion) · [`tests/test_openai_server.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/tests/test_openai_server.py) (endpoints, SSE)
+- **Benchmark harness:** [`ports/gemma4/jax_e_benchmark_sweep_v2.py`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/ports/gemma4/jax_e_benchmark_sweep_v2.py)
+- **Corrected validation report:** [`benchmarks/runs/2026-07-29-kv-quant-v6e1/REPORT.md`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/benchmarks/runs/2026-07-29-kv-quant-v6e1/REPORT.md)
+- **Real-weight HTTP validation:** [`benchmarks/runs/2026-07-29-real-http-v6e1/REPORT.md`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/benchmarks/runs/2026-07-29-real-http-v6e1/REPORT.md)
+- **vLLM baseline data:** [`benchmarks/reports/2026-07-21-gemma4-e2b-v6e1.json`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/benchmarks/reports/2026-07-21-gemma4-e2b-v6e1.json)
 - **Upstream issue:** [tpu-inference #3225](https://github.com/vllm-project/tpu-inference/issues/3225)
 
 ### Prior art
 
 Rubens de Almeida Zimbres' TPU inference measurement series (CC-BY-4.0) is the closest published
 work to this, and several of its results are cited above. Notes on how each bears on the engine
-here are in [`docs/references/tpu-inference-measurement-series.md`](https://github.com/xbill9/tpu-jax/blob/main/docs/references/tpu-inference-measurement-series.md).
+here are in [`docs/references/tpu-inference-measurement-series.md`](https://github.com/xbill9/tpu-jax-v6e1-2b/blob/main/docs/references/tpu-inference-measurement-series.md).
 
 - [10.5281/zenodo.21212010](https://doi.org/10.5281/zenodo.21212010) — *From 1,540 to 19,511 Tokens per Second on a Single TPU v5e Chip* (12.7x; arithmetic-intensity framework; what failed and why)
 - [10.5281/zenodo.21227936](https://doi.org/10.5281/zenodo.21227936) — *Token Velocity on a Single TPU v5e Chip* (decode rate vs. input length)

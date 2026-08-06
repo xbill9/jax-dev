@@ -64,7 +64,7 @@ addenda, before quoting capacity or throughput figures.
 ## Reproduction
 
 The source implementation and tests are maintained at
-[`xbill9/tpu-jax`](https://github.com/xbill9/tpu-jax). The principal corrected
+[`xbill9/tpu-jax-v6e1-2b`](https://github.com/xbill9/tpu-jax-v6e1-2b). The principal corrected
 harness is:
 
 ```bash

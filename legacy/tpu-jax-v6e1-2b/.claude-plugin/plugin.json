@@ -6,8 +6,8 @@
     "name": "xbill9",
     "url": "https://github.com/xbill9"
   },
-  "homepage": "https://github.com/xbill9/tpu-skill-claude",
-  "repository": "https://github.com/xbill9/tpu-skill-claude",
+  "homepage": "https://github.com/xbill9/tpu-jax-v6e1-2b",
+  "repository": "https://github.com/xbill9/tpu-jax-v6e1-2b",
   "license": "Apache-2.0",
   "keywords": ["tpu", "gcp", "vllm", "gemma", "mcp", "devops"],
   "mcpServers": {

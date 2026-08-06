@@ -191,5 +191,5 @@ ax4.set_yscale('log', base=2)
 ax4.set_ylim(32, 8192)
 
 plt.tight_layout(rect=[0, 0, 1, 0.94])
-plt.savefig('/home/xbill/tpu-jax/gemma4_tpu_v6e_benchmark.png', facecolor=fig.get_facecolor(), edgecolor='none')
-print("Successfully generated plot at /home/xbill/tpu-jax/gemma4_tpu_v6e_benchmark.png")
+plt.savefig('/home/xbill/tpu-jax-v6e1-2b/gemma4_tpu_v6e_benchmark.png', facecolor=fig.get_facecolor(), edgecolor='none')
+print("Successfully generated plot at /home/xbill/tpu-jax-v6e1-2b/gemma4_tpu_v6e_benchmark.png")
