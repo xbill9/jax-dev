@@ -176,11 +176,11 @@ class ServingDependencyTests(unittest.TestCase):
 
 class ServingAwareToolTests(unittest.TestCase):
     """The health/log/endpoint tools branch on `serving`. Checked through the
-    FastMCP tool objects so the exposed signature is what gets tested."""
+    MCPServer tool objects so the exposed signature is what gets tested."""
 
     @staticmethod
     def _fn(name):
-        # FastMCP's @mcp.tool registers and returns the original function here;
+        # MCPServer's @mcp.tool registers and returns the original function here;
         # older/newer versions hand back a wrapper carrying `.fn`. Accept both
         # so the test pins the server's behaviour, not the decorator's.
         tool = getattr(server, name)

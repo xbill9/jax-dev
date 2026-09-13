@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Annotated, Literal, Optional
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 from openai import AsyncOpenAI
 from pydantic import Field
@@ -36,7 +36,7 @@ except ImportError:  # Keep offline schema/tests usable before `pip install -r`.
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("inf2-devops")
 
-mcp = FastMCP("inf2-devops-agent")
+mcp = MCPServer("inf2-devops-agent")
 READ_ONLY = ToolAnnotations(readOnlyHint=True, idempotentHint=True)
 WRITE = ToolAnnotations(destructiveHint=False)
 DESTRUCTIVE = ToolAnnotations(destructiveHint=True)
