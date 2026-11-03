@@ -24,8 +24,10 @@ Read that file before naming, renaming or adding a rig. This file records only w
 
 The old repos had no `tpu.env`; slot values come from each repo's README, its retarget commits and the defaults in `jax_openai_server.py` / `jax_engine.py`. Every `server.py` still defaults to `gemma-4-31B-it` on `v6e-8` with `TENSOR_PARALLEL_SIZE=8`, drift inherited from the template, so never read a value off `server.py` defaults.
 
-#### Owed: derived names
+#### Derived names
 
-The scheme requires the plugin, MCP server key and skill to be named after the directory (`<rig>`, `mcp__<rig>__*`, `<rig>-management`). Every rig here still registers as plugin `tpu-management`, MCP server `tpu-devops`, skill `tpu-management`, and shares `~/.cache/tpu_zones_status.md`. Two of them loaded at once collide, and `make skill-install` in one overwrites the other. Rename one rig per commit, following the sweep in gemma4-dev's NAMING.md ("The name is a claim about `tpu.env`"). Until that is done there is no root `marketplace.json`.
+Each rig's plugin, MCP server key and skill carry its directory name (`<rig>`, `mcp__<rig>__*`, `<rig>-management`), and its zone-status cache is `~/.cache/<rig>/tpu_zones_status.md`. The rigs were renamed off the shared `tpu-management` / `tpu-devops` names on 2026-11-03, following gemma4-dev's commits `22ef3855` and `683d55fd`. `server.py` holds the name as the `RIG_NAME` literal; `MCP_SERVER_NAME`, `SKILL_NAME` and `TPU_ZONES_STATUS_FILE` override it. The root `.claude-plugin/marketplace.json` lists all six.
+
+**`tpu-jax-inf2-2b-w4a16` has two servers.** The AWS Inferentia2 server, which provisions this rig's hardware, takes the bare rig name and skill `tpu-jax-inf2-2b-w4a16-management`, as gemma4-dev's inf2 rigs do. The bundled Google Cloud TPU template is `tpu-jax-inf2-2b-w4a16-tpu` with skill `tpu-jax-inf2-2b-w4a16-tpu-management`. The EC2 tag `ManagedBy=inf2-devops` keeps its old value so instances already tagged stay discoverable. `devto-article.md` there still says `tpu-management`, because it documents the separate `xbill9/tpu-skill-claude` repo.
 
 `legacy/` rigs are frozen and keep their old internal names.

@@ -15,6 +15,8 @@ Each rig directory is a former standalone repo, imported here with its full git 
 | [`colab/`](colab) | Apache-2.0 Colab notebooks: JAX on TPU, and serving Gemma 4 E2B on one chip |
 | [`legacy/`](legacy) | Frozen copies of `tpu-jax-v5e1-2b` and `tpu-jax-v6e1-2b`; the live rigs are in [gemma4-dev](https://github.com/xbill9/gemma4-dev) |
 
+Install any rig as a Claude Code plugin with `/plugin marketplace add xbill9/jax-dev`; each brings a management skill and an MCP server named after its directory.
+
 The rigs are siblings: they share ancestry and have diverged, and nothing is imported across a rig boundary. Read a rig's own `CLAUDE.md` before working in it.
 
 Related trees: [gemma4-dev](https://github.com/xbill9/gemma4-dev) (vLLM, JAX, PyTorch and llama.cpp rigs across TPU, GPU and local hardware) and [torchtpu-dev](https://github.com/xbill9/torchtpu-dev) (TorchTPU).
