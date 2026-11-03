@@ -1,0 +1,7 @@
+arm                                                tok/s  x ref weights GB  HBM GB prompts same identical mean prefix
+google/gemma-4-E2B-it (fp16)                       132.6  1.000      9.257   9.260     8 of 8   8 of 8   128.0/128
+xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text (w4a16)   103.0  0.777      6.559   6.561     8 of 8   0 of 8    20.5/128
+google/gemma-4-E2B-it-qat-w4a16-ct (w4a16)         103.1  0.777      6.559   6.562     8 of 8   0 of 8    20.6/128
+arm                                                tok/s  x ref weights GB  HBM GB prompts same identical mean prefix
+xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text (w4a16)   103.0  1.000      6.559   6.561     8 of 8   8 of 8   128.0/128
+google/gemma-4-E2B-it-qat-w4a16-ct (w4a16)         103.1  1.001      6.559   6.562     8 of 8   0 of 8    26.6/128

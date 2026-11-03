@@ -1,0 +1,13 @@
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files:  67%|██████▋   | 4/6 [00:00<00:00, 38.29it/s]Fetching 6 files:  83%|████████▎ | 5/6 [00:17<00:00, 38.29it/s]Fetching 6 files: 100%|██████████| 6/6 [00:46<00:00,  9.77s/it]Fetching 6 files: 100%|██████████| 6/6 [00:46<00:00,  7.82s/it]
+loaded google/gemma-4-E2B-it-qat-w4a16-ct in 51.9s, weights 6.559 GB, HBM 6.562 / 16.909 GB
+  103.4 tok/s  prefill    23.2 ms  Explain TPU buffer donation in JAX in three senten
+  103.4 tok/s  prefill    23.1 ms  Write a Python function that returns the n-th Fibo
+  103.0 tok/s  prefill    23.2 ms  What is the capital of Australia, and why is it no
+  103.1 tok/s  prefill    23.2 ms  Summarize the plot of Romeo and Juliet in one para
+  103.2 tok/s  prefill    23.2 ms  List five prime numbers greater than 100.
+  101.6 tok/s  prefill    23.2 ms  Translate 'The weather is lovely today' into Frenc
+  101.6 tok/s  prefill    23.2 ms  A train leaves at 3:15 pm and arrives at 6:40 pm. 
+  101.7 tok/s  prefill    23.3 ms  Describe how a hash table handles collisions.
+median decode 103.1 tok/s -> ab/w4a16.json
