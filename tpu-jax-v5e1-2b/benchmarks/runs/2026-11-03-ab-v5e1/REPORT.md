@@ -15,7 +15,7 @@ HBM limit reported by the device: 16.909 GB. Load time includes the Hub download
 #### Findings
 
 - **bf16 decodes 1.29x faster than either 4-bit build in this engine on v5e** (132.6 against 103.0 tok/s), and prefills 3.1x faster (7.4 against 23.2 ms). The 4-bit arms ran the engine's default `w4a16_impl="reference"`, which unpacks int4 inside every matmul; which part of that is slower than the dense path was not measured.
-- **4-bit saves 2.70 GB of HBM** (6.56 against 9.26 GB resident), which is room for KV cache, not speed.
+- **4-bit saves 2.70 GB of HBM** (6.56 against 9.26 GB resident), headroom the KV cache can use on a 16.9 GB chip.
 - **The repack and Google's export run at the same speed and size** (103.0 against 103.1 tok/s, 6.559 GB each), as on the Colab v5e (93.3 against 93.7 tok/s, `colab/runs/2026-10-09/`).
 - **Their outputs differ.** All 8 prompts tokenize identically; none of the 8 completions match token for token, and they agree for 26.6 of 128 tokens on average before diverging.
 - **Against bf16, neither 4-bit build is a quantization of it.** Both are QAT weights, a separate training run, so agreement with `google/gemma-4-E2B-it` (20.5 and 20.6 of 128 tokens) measures QAT against the release, not the cost of 4 bits. All three produce coherent answers (`*.json`, field `text`).
