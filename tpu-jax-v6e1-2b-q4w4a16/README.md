@@ -107,6 +107,7 @@ Measurements of the engine itself (buffer donation, int8 KV, kernel sweeps, HTTP
 #### References
 
 - Parent rig: [`tpu-jax-v6e1-2b-w4a16`](../tpu-jax-v6e1-2b-w4a16)
+- bf16 baseline on v5e-1: [`tpu-jax-v5e1-2b`](../tpu-jax-v5e1-2b)
 - v5e-1 sibling: [`tpu-jax-v5e1-2b-q4w4a16`](../tpu-jax-v5e1-2b-q4w4a16)
 - Repack tool: `~/gemma4-dev/jev-tpu-31b/repack_q4_0.py`
 - Checkpoint: [xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text](https://huggingface.co/xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text)

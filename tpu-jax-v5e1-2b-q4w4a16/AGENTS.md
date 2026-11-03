@@ -210,7 +210,7 @@ python3 ports/gemma4/jax_e_benchmark_sweep_v2.py \
   training, so the model learns to compensate for the precision loss. The suffixes are
   not interchangeable:
   - `-w4a16-ct` — 4-bit weights, 16-bit activations, aimed at cloud serving. This is
-    the default `MODEL_ID` in `jax_openai_server.py` and what `w4a16_impl` decodes.
+    what `w4a16_impl` decodes; this rig's default `MODEL_ID` is the `-q4_0` repack in this format.
   - `-q4_0-unquantized` — half-precision QAT weights, intended for custom compilation
     and speculative decoding. Faster on this engine (10.1 vs 8.1 tok/s on a v6e-1, `../tpu-jax-v6e1-2b-w4a16/deploy.md`),
     at ~4× the HBM.

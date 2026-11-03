@@ -8,13 +8,19 @@ import collections
 import json
 import struct
 import sys
+import urllib.error
 import urllib.request
 
 repo, rev = sys.argv[1], sys.argv[2]
 base = f"https://huggingface.co/{repo}/resolve/{rev}/"
-idx = json.load(urllib.request.urlopen(base + "model.safetensors.index.json"))
+try:
+    files = sorted(set(json.load(urllib.request.urlopen(base + "model.safetensors.index.json"))["weight_map"].values()))
+except urllib.error.HTTPError as e:  # single-file checkpoint, e.g. google/gemma-4-E2B-it
+    if e.code != 404:
+        raise
+    files = ["model.safetensors"]
 hdr = {}
-for f in sorted(set(idx["weight_map"].values())):
+for f in files:
     r = urllib.request.Request(base + f, headers={"Range": "bytes=0-7"})
     n = struct.unpack("<Q", urllib.request.urlopen(r).read())[0]
     r = urllib.request.Request(base + f, headers={"Range": f"bytes=8-{7+n}"})

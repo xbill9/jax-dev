@@ -1,0 +1,15 @@
+{
+  "name": "tpu-jax-v5e1-2b",
+  "description": "Claude Code plugins for Google Cloud TPU DevOps: the tpu-jax-v5e1-2b-management skill and tpu-jax-v5e1-2b MCP server for Gemma 4 vLLM serving on TPU VMs.",
+  "owner": {
+    "name": "xbill9",
+    "url": "https://github.com/xbill9"
+  },
+  "plugins": [
+    {
+      "name": "tpu-jax-v5e1-2b",
+      "source": "./",
+      "description": "Pure-JAX Gemma 4 E2B bf16 baseline (google/gemma-4-E2B-it) on one Cloud TPU v5e chip, plus Google Cloud TPU provisioning and SRE diagnostics via the tpu-jax-v5e1-2b MCP server."
+    }
+  ]
+}
