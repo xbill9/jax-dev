@@ -1,6 +1,6 @@
 # Runtime dependencies for the pure-JAX Gemma 4 server on Inf2.
 #
-# The repo-root requirements.txt covers the tpu-devops MCP server (mcp, httpx,
+# The repo-root requirements.txt covers the tpu-jax-v6e1-2b-w4a16 MCP server (mcp, httpx,
 # openai, google-cloud-secret-manager) and does NOT cover the serving path, so
 # installing it alone leaves the service crashing on import.
 #

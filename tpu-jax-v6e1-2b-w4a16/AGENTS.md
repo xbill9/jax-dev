@@ -1,4 +1,4 @@
-# 🤖 Gemini Workspace Context: TPU Management Skill & tpu-devops MCP Agent
+# 🤖 Gemini Workspace Context: TPU Management Skill & tpu-jax-v6e1-2b-w4a16 MCP Agent
 
 This workspace context file helps **Gemini Code Assistant** (and other developer tools) quickly understand the layout, goals, and integration methods of the **tpu-skill-claude** project.
 
@@ -6,7 +6,7 @@ This workspace context file helps **Gemini Code Assistant** (and other developer
 
 ## 🎯 Project Overview & Role
 
-This repository packages a Claude Code skill (`tpu-management`) and a **Model Context Protocol (MCP) server** (`tpu-devops`) that together act as an AI DevOps/SRE agent for Google Cloud TPUs. Two main purposes:
+This repository packages a Claude Code skill (`tpu-jax-v6e1-2b-w4a16-management`) and a **Model Context Protocol (MCP) server** (`tpu-jax-v6e1-2b-w4a16`) that together act as an AI DevOps/SRE agent for Google Cloud TPUs. Two main purposes:
 
 1. **Infrastructure Operations:** Finding, provisioning, and destroying TPU capacity (flex-start VMs, queued resources) and running Gemma 4 vLLM serving on TPU VMs (v6e, v5p, v5e).
 2. **Log & SRE Diagnostics:** Utilizing the self-hosted Gemma 4 model to analyze system/cloud logs and generate remediation suggestions.
@@ -17,13 +17,13 @@ This repository packages a Claude Code skill (`tpu-management`) and a **Model Co
 
 Key entrypoints in the codebase:
 
-- **MCP server source:** [server.py](server.py) — the authoritative `tpu-devops` MCPServer agent (full tool catalog in `SKILL.md` / the `get_help` tool)
-- **Skill definition:** [.claude/skills/tpu-management/SKILL.md](.claude/skills/tpu-management/SKILL.md) — lifecycle, tool catalog, required vLLM flags, field notes
+- **MCP server source:** [server.py](server.py) — the authoritative `tpu-jax-v6e1-2b-w4a16` MCPServer agent (full tool catalog in `SKILL.md` / the `get_help` tool)
+- **Skill definition:** [.claude/skills/tpu-jax-v6e1-2b-w4a16-management/SKILL.md](.claude/skills/tpu-jax-v6e1-2b-w4a16-management/SKILL.md) — lifecycle, tool catalog, required vLLM flags, field notes
 - **Installer:** [project-setup.sh](project-setup.sh) — one-command skill install + MCP registration
 - **Root Makefile:** [Makefile](Makefile) — `skill` / `skill-install` / `skill-package` / `init` targets
 - **Snapshot refresher:** [refresh_skill.py](refresh_skill.py) — regenerates the bundled skill copies from the root sources
 - **Plugin marketplace manifests:** [.claude-plugin/](.claude-plugin/) — makes the repo installable via the Claude Code plugin system
-- **Reference guide:** `.claude/skills/tpu-management/references/tpu-guide.md` — TPU getting started guide: zones, quotas, troubleshooting
+- **Reference guide:** `.claude/skills/tpu-jax-v6e1-2b-w4a16-management/references/tpu-guide.md` — TPU getting started guide: zones, quotas, troubleshooting
 
 ---
 
@@ -34,7 +34,7 @@ The repo-root files (`server.py`, `project-setup.sh`, `tpu.md`) are authoritativ
 ```bash
 make skill         # Regenerate skill snapshots + plugin copy
 make skill-install # ...and install to ~/.claude/skills
-make skill-package # ...and rebuild dist/tpu-management-skill.zip
+make skill-package # ...and rebuild dist/tpu-jax-v6e1-2b-w4a16-management-skill.zip
 ```
 
 ---
