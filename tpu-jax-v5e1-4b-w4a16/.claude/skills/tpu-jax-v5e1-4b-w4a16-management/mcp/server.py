@@ -19,15 +19,27 @@ from mcp.types import ToolAnnotations
 from openai import AsyncOpenAI
 from pydantic import Field
 
+# This rig's identity. The directory name is the single identifier everything else derives
+# from: the MCP server name, the log channel, and the zone-status cache directory. Sibling
+# rigs share a GCP project and zone, so a shared constant here is how one rig ends up
+# answering for, or clobbering the state of, another. It is a literal rather than
+# basename(__file__) because the installed skill copy lives at
+# .claude/skills/<skill>/mcp/server.py, where deriving from the path would yield "mcp".
+RIG_NAME = "tpu-jax-v5e1-4b-w4a16"
+
 # Setup logging
 logging.basicConfig(
     stream=sys.stderr, level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger("vllm-devops-agent")
+logger = logging.getLogger(RIG_NAME)
 
-# Initialize MCPServer server. The name stays generic — model and topology come
-# from env vars, so they don't belong in the server identity.
-mcp = MCPServer("tpu-devops-agent")
+# Initialize MCPServer server. The name has to match the key the client registers this
+# server under, because that key prefixes every tool: mcp__<key>__find_tpu. Every
+# sibling rig used to answer to "tpu-devops", so with more than one registered you could
+# not tell which rig a tool call would reach. It defaults to the rig directory name;
+# MCP_SERVER_NAME overrides it, and project-setup.sh passes the key it registered.
+MCP_SERVER_NAME = os.getenv("MCP_SERVER_NAME", RIG_NAME)
+mcp = MCPServer(MCP_SERVER_NAME)
 
 # Annotation presets — hints that let clients (e.g. permission layers) auto-allow
 # reads and require confirmation before destructive calls.
@@ -111,7 +123,14 @@ JAX_PIP_EXTRAS = os.getenv(
 # find_tpu records per-zone provisioning outcomes here so later sweeps can skip
 # zones that never delivered capacity. Lives outside the skill directory so
 # reinstalls (`make skill`, project-setup.sh) don't wipe the learned state.
-STATUS_FILE = os.path.join(os.path.expanduser("~"), ".cache", "tpu-devops", "tpu_zones_status.md")
+#
+# Keyed by RIG_NAME, not shared: sibling rigs request different accelerator types, and a
+# zone that rejects one says nothing about another. Override the whole path with
+# TPU_ZONES_STATUS_FILE.
+STATUS_FILE = os.getenv(
+    "TPU_ZONES_STATUS_FILE",
+    os.path.join(os.path.expanduser("~"), ".cache", RIG_NAME, "tpu_zones_status.md"),
+)
 
 # --- Helper Functions ---
 
@@ -246,7 +265,8 @@ async def get_secret(secret_id: str = HF_SECRET_ID) -> Optional[str]:
 # failing at VM-creation time with a confusing "no such file".
 _TEMPLATE_SEARCH_DIRS = (
     os.path.dirname(os.path.abspath(__file__)),
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".claude", "skills", "tpu-management", "mcp"),
+    # Derived from RIG_NAME: the skill directory carries the rig name.
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".claude", "skills", f"{RIG_NAME}-management", "mcp"),
 )
 
 
@@ -1282,7 +1302,7 @@ async def find_tpu(
     """Sweeps every zone with available quota, creating the queued resource and polling
     until one reaches ACTIVE. Side effects: deletes the created resource in each zone
     that fails or times out; on success switches the server's default zone to the
-    winning zone; records failed zones in ~/.cache/tpu-devops/tpu_zones_status.md and
+    winning zone; records failed zones in ~/.cache/tpu-jax-v5e1-4b-w4a16/tpu_zones_status.md and
     skips them on later sweeps."""
     zones = await _get_zones_with_available_quota_list(service, quota_id)
     if not zones:

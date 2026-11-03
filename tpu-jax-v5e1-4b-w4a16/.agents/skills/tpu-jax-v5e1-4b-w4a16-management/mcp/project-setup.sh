@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# One-command setup of the tpu-management skill + tpu-devops MCP server for a project.
+# One-command setup of the tpu-jax-v5e1-4b-w4a16-management skill + tpu-jax-v5e1-4b-w4a16 MCP server for a project.
 #
 # Usage:
 #   ./project-setup.sh [TARGET_DIR] [options]
 #
 #   TARGET_DIR              Project to set up (default: current directory).
-#                           Installs the skill into TARGET_DIR/.claude/skills/tpu-management
+#                           Installs the skill into TARGET_DIR/.claude/skills/tpu-jax-v5e1-4b-w4a16-management
 #                           and registers the MCP server in TARGET_DIR/.mcp.json.
 #
 # Options:
@@ -16,7 +16,7 @@
 #   --model NAME            MODEL_NAME            (default: google/gemma-4-31B-it)
 #   --accelerator TYPE      ACCELERATOR_TYPE      (default: v6e-8)
 #   --tp N                  TENSOR_PARALLEL_SIZE  (default: 8)
-#   --server-name NAME      MCP server name       (default: tpu-devops)
+#   --server-name NAME      MCP server name       (default: tpu-jax-v5e1-4b-w4a16)
 #   --skip-deps             Don't check Python dependencies.
 #   -h, --help              Show this help.
 #
@@ -24,7 +24,7 @@
 # existing .mcp.json entry in place, leaving other servers untouched.
 #
 # Works from either checkout layout:
-#   - the skill repo root (uses .claude/skills/tpu-management), or
+#   - the skill repo root (uses .claude/skills/tpu-jax-v5e1-4b-w4a16-management), or
 #   - inside an unzipped skill bundle (mcp/project-setup.sh next to mcp/server.py).
 
 set -euo pipefail
@@ -34,12 +34,12 @@ info() { echo "==> $*"; }
 
 # --- Locate the skill source relative to this script ---------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/.claude/skills/tpu-management/SKILL.md" ]; then
-  SKILL_SRC="$SCRIPT_DIR/.claude/skills/tpu-management"     # repo root
+if [ -f "$SCRIPT_DIR/.claude/skills/tpu-jax-v5e1-4b-w4a16-management/SKILL.md" ]; then
+  SKILL_SRC="$SCRIPT_DIR/.claude/skills/tpu-jax-v5e1-4b-w4a16-management"     # repo root
 elif [ -f "$SCRIPT_DIR/../SKILL.md" ]; then
   SKILL_SRC="$(cd "$SCRIPT_DIR/.." && pwd)"                 # skill-bundle mcp/ dir
 else
-  err "cannot find the tpu-management skill next to $SCRIPT_DIR"
+  err "cannot find the tpu-jax-v5e1-4b-w4a16-management skill next to $SCRIPT_DIR"
 fi
 
 # --- Parse arguments -----------------------------------------------------------------
@@ -50,7 +50,7 @@ GCP_PROJECT=""
 MODEL_NAME="google/gemma-4-31B-it"
 ACCELERATOR_TYPE="v6e-8"
 TENSOR_PARALLEL_SIZE="8"
-SERVER_NAME="tpu-devops"
+SERVER_NAME="tpu-jax-v5e1-4b-w4a16"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -83,9 +83,9 @@ fi
 
 # --- Install the skill copy ----------------------------------------------------------
 if [ "$GLOBAL" -eq 1 ]; then
-  SKILL_DEST="$HOME/.claude/skills/tpu-management"
+  SKILL_DEST="$HOME/.claude/skills/tpu-jax-v5e1-4b-w4a16-management"
 else
-  SKILL_DEST="$TARGET_DIR/.claude/skills/tpu-management"
+  SKILL_DEST="$TARGET_DIR/.claude/skills/tpu-jax-v5e1-4b-w4a16-management"
 fi
 
 if [ "$SKILL_SRC" != "$SKILL_DEST" ]; then
@@ -152,7 +152,7 @@ except FileNotFoundError:
     config = {}
 config.setdefault("mcpServers", {})[name] = {
     "command": python_bin,
-    "args": [".claude/skills/tpu-management/mcp/server.py"],
+    "args": [".claude/skills/tpu-jax-v5e1-4b-w4a16-management/mcp/server.py"],
     "env": json.loads(env_json),
 }
 with open(path, "w") as f:
