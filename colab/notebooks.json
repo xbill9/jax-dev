@@ -1,0 +1,19 @@
+{
+  "repo": "xbill9/colab-jax",
+  "branch": "main",
+  "notebooks": {
+    "01_jax_tpu_mechanics.py": {
+      "title": "JAX on TPU: donation, static shapes, and cached state",
+      "accelerator": "TPU",
+      "tpu": "v5e1"
+    },
+    "02_e2b_repack_vs_stock_on_jax.py": {
+      "title": "Gemma 4 E2B on JAX: Google's W4A16 export against an exact QAT repack",
+      "accelerator": "TPU",
+      "tpu": "v5e1"
+    }
+  },
+  "authors": [
+    "William McLean"
+  ]
+}
