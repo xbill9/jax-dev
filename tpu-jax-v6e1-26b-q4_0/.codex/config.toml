@@ -1,9 +1,10 @@
-[mcp_servers.tpu-devops]
+[mcp_servers.tpu-jax-v6e1-26b-q4_0]
 command = "python3"
-args = [".claude/skills/tpu-management/mcp/server.py"]
+args = [".claude/skills/tpu-jax-v6e1-26b-q4_0-management/mcp/server.py"]
 
-[mcp_servers.tpu-devops.env]
+[mcp_servers.tpu-jax-v6e1-26b-q4_0.env]
 MODEL_NAME = "google/gemma-4-31B-it"
 ACCELERATOR_TYPE = "v6e-8"
 TENSOR_PARALLEL_SIZE = "8"
 GOOGLE_CLOUD_PROJECT = "aisprint-491218"
+MCP_SERVER_NAME = "tpu-jax-v6e1-26b-q4_0"

@@ -27,7 +27,7 @@ logger = logging.getLogger("vllm-devops-agent")
 
 # Initialize FastMCP server. The name stays generic — model and topology come
 # from env vars, so they don't belong in the server identity.
-mcp = FastMCP("tpu-devops-agent")
+mcp = FastMCP("tpu-jax-v6e1-26b-q4_0")
 
 # Annotation presets — hints that let clients (e.g. permission layers) auto-allow
 # reads and require confirmation before destructive calls.
@@ -106,7 +106,7 @@ JAX_PIP_EXTRAS = os.getenv(
 # find_tpu records per-zone provisioning outcomes here so later sweeps can skip
 # zones that never delivered capacity. Lives outside the skill directory so
 # reinstalls (`make skill`, project-setup.sh) don't wipe the learned state.
-STATUS_FILE = os.path.join(os.path.expanduser("~"), ".cache", "tpu-devops", "tpu_zones_status.md")
+STATUS_FILE = os.path.join(os.path.expanduser("~"), ".cache", "tpu-jax-v6e1-26b-q4_0", "tpu_zones_status.md")
 
 # --- Helper Functions ---
 
@@ -241,7 +241,7 @@ async def get_secret(secret_id: str = HF_SECRET_ID) -> Optional[str]:
 # failing at VM-creation time with a confusing "no such file".
 _TEMPLATE_SEARCH_DIRS = (
     os.path.dirname(os.path.abspath(__file__)),
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".claude", "skills", "tpu-management", "mcp"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".claude", "skills", "tpu-jax-v6e1-26b-q4_0-management", "mcp"),
 )
 
 
@@ -1273,7 +1273,7 @@ async def find_tpu(
     """Sweeps every zone with available quota, creating the queued resource and polling
     until one reaches ACTIVE. Side effects: deletes the created resource in each zone
     that fails or times out; on success switches the server's default zone to the
-    winning zone; records failed zones in ~/.cache/tpu-devops/tpu_zones_status.md and
+    winning zone; records failed zones in ~/.cache/tpu-jax-v6e1-26b-q4_0/tpu_zones_status.md and
     skips them on later sweeps."""
     zones = await _get_zones_with_available_quota_list(service, quota_id)
     if not zones:
