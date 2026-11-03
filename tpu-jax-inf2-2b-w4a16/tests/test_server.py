@@ -1,4 +1,4 @@
-"""Smoke and regression tests for the tpu-devops MCP server and repo invariants.
+"""Smoke and regression tests for the tpu-jax-inf2-2b-w4a16-tpu MCP server and repo invariants.
 
 Standard library + the server's own dependencies only; run via `make test` or
 `python3 -m unittest discover -s tests`. No GCP calls are made — tests cover
@@ -142,7 +142,7 @@ class HelperTests(unittest.TestCase):
 class StartupTemplateTests(unittest.TestCase):
     def render(self):
         template = (
-            ROOT / ".claude/skills/tpu-management/mcp/startup_script_template.sh"
+            ROOT / ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management/mcp/startup_script_template.sh"
         ).read_text()
         return template.format(
             project_id="test-project",
@@ -177,7 +177,7 @@ class JaxStartupTemplateTests(unittest.TestCase):
 
     def render(self):
         template = (
-            ROOT / ".claude/skills/tpu-management/mcp/startup_script_jax_template.sh"
+            ROOT / ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management/mcp/startup_script_jax_template.sh"
         ).read_text()
         return template.format(
             project_id="test-project",
@@ -296,7 +296,7 @@ class TemplateResolutionTests(unittest.TestCase):
 
     def test_deployed_copy_is_a_sibling_of_its_templates(self):
         """The snapshot server.py must ship next to both templates."""
-        mcp_dir = ROOT / ".claude/skills/tpu-management/mcp"
+        mcp_dir = ROOT / ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management/mcp"
         for name in ("server.py", "startup_script_template.sh", "startup_script_jax_template.sh"):
             self.assertTrue((mcp_dir / name).is_file(), f"{name} missing from the deployed skill")
 
@@ -361,7 +361,7 @@ class TemplateBraceHygieneTests(unittest.TestCase):
     def test_only_known_placeholders_appear(self):
         import re
         for name, allowed in self.TEMPLATES.items():
-            text = (ROOT / ".claude/skills/tpu-management/mcp" / name).read_text()
+            text = (ROOT / ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management/mcp" / name).read_text()
             found = set(re.findall(r"\{([^}]*)\}", text))
             unexpected = found - allowed
             self.assertEqual(
@@ -395,9 +395,9 @@ class RepoHygieneTests(unittest.TestCase):
         """Sources at the repo root are authoritative; `make skill` regenerates the
         copies. A mismatch means someone edited one side without resyncing."""
         for src, snap in (
-            ("server.py", ".claude/skills/tpu-management/mcp/server.py"),
-            ("project-setup.sh", ".claude/skills/tpu-management/mcp/project-setup.sh"),
-            ("requirements.txt", ".claude/skills/tpu-management/mcp/requirements.txt"),
+            ("server.py", ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management/mcp/server.py"),
+            ("project-setup.sh", ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management/mcp/project-setup.sh"),
+            ("requirements.txt", ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management/mcp/requirements.txt"),
         ):
             self.assertTrue(
                 filecmp.cmp(ROOT / src, ROOT / snap, shallow=False),
@@ -414,11 +414,11 @@ class RepoHygieneTests(unittest.TestCase):
         ):
             self.assertTrue(
                 filecmp.cmp(
-                    ROOT / ".claude/skills/tpu-management" / rel,
-                    ROOT / "skills/tpu-management" / rel,
+                    ROOT / ".claude/skills/tpu-jax-inf2-2b-w4a16-tpu-management" / rel,
+                    ROOT / "skills/tpu-jax-inf2-2b-w4a16-tpu-management" / rel,
                     shallow=False,
                 ),
-                f"skills/tpu-management/{rel} is stale — run `make skill`",
+                f"skills/tpu-jax-inf2-2b-w4a16-tpu-management/{rel} is stale — run `make skill`",
             )
 
 

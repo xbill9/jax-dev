@@ -1,11 +1,11 @@
 ---
-name: inf2-management
-description: Provision and operate AWS EC2 Inferentia2 instances through the inf2-devops MCP server — Neuron vLLM, the Gemma-4 Option-B container, or this repository's pure-JAX engine.
+name: tpu-jax-inf2-2b-w4a16-management
+description: Provision and operate AWS EC2 Inferentia2 instances through the tpu-jax-inf2-2b-w4a16 MCP server — Neuron vLLM, the Gemma-4 Option-B container, or this repository's pure-JAX engine.
 ---
 
 # AWS Inferentia2 management
 
-Use the `inf2-devops` MCP tools for AWS Inf2 lifecycle work.
+Use the `tpu-jax-inf2-2b-w4a16` MCP tools for AWS Inf2 lifecycle work.
 
 ## Workflow
 

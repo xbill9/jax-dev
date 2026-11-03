@@ -34,9 +34,16 @@ except ImportError:  # Keep offline schema/tests usable before `pip install -r`.
         """Fallback used only when the optional AWS dependency is absent."""
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("inf2-devops")
+# This rig's identity, and the MCP server name it registers under: the server that
+# provisions the rig's own hardware takes the bare rig name (the bundled Google Cloud
+# TPU template is tpu-jax-inf2-2b-w4a16-tpu). It used to answer to "inf2-devops", a name shared with
+# other Inferentia rigs. The EC2 tag ManagedBy=inf2-devops keeps the old name on
+# purpose: renaming it would orphan instances that are already tagged.
+RIG_NAME = "tpu-jax-inf2-2b-w4a16"
+logger = logging.getLogger(RIG_NAME)
 
-mcp = MCPServer("inf2-devops-agent")
+MCP_SERVER_NAME = os.getenv("MCP_SERVER_NAME", RIG_NAME)
+mcp = MCPServer(MCP_SERVER_NAME)
 READ_ONLY = ToolAnnotations(readOnlyHint=True, idempotentHint=True)
 WRITE = ToolAnnotations(destructiveHint=False)
 DESTRUCTIVE = ToolAnnotations(destructiveHint=True)
@@ -84,8 +91,8 @@ def _jax_deploy_dir() -> Path:
     """Locate `deployments/aws-inf2`, which owns the JAX cloud-init template.
 
     Searched for rather than computed from `__file__`, because this server lives
-    at two different depths — `.claude/skills/inf2-management/mcp/` in the repo
-    and `skills/inf2-management/mcp/` in the plugin copy — and may be installed
+    at two different depths — `.claude/skills/tpu-jax-inf2-2b-w4a16-management/mcp/` in the repo
+    and `skills/tpu-jax-inf2-2b-w4a16-management/mcp/` in the plugin copy — and may be installed
     to `~/.claude/skills/` entirely outside the tree.
 
     The template is READ, never duplicated. `deployments/aws-inf2/deploy.py`

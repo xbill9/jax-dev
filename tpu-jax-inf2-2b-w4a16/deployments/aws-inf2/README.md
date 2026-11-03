@@ -191,7 +191,7 @@ SSM port forwarding or put a private load balancer in front of it.
 `deploy.py` (below) is the plan/apply CLI: explicit, reviewable, and the only
 path that attaches and reports the persistent compile-cache volume.
 
-The `inf2-devops` MCP server is the conversational path — `create_inf2_instance(
+The `tpu-jax-inf2-2b-w4a16` MCP server is the conversational path — `create_inf2_instance(
 serving="jax", source_uri=...)`. It renders **this same `user_data.sh`**, read at
 call time rather than copied, so the two cannot drift; `tests/test_inf2_mcp_jax.py`
 asserts the rendered bytes are identical. Its `verify_neuron_health`,

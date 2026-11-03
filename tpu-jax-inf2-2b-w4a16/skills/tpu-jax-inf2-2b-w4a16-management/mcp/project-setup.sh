@@ -6,8 +6,8 @@ err() { echo "error: $*" >&2; exit 1; }
 info() { echo "==> $*"; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -f "$SCRIPT_DIR/.claude/skills/inf2-management/SKILL.md" ]; then
-  SKILL_SRC="$SCRIPT_DIR/.claude/skills/inf2-management"
+if [ -f "$SCRIPT_DIR/.claude/skills/tpu-jax-inf2-2b-w4a16-management/SKILL.md" ]; then
+  SKILL_SRC="$SCRIPT_DIR/.claude/skills/tpu-jax-inf2-2b-w4a16-management"
 elif [ -f "$SCRIPT_DIR/../SKILL.md" ]; then
   SKILL_SRC="$(cd "$SCRIPT_DIR/.." && pwd)"
 else
@@ -21,7 +21,7 @@ AWS_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
 AWS_PROFILE="${AWS_PROFILE:-}"
 MODEL_NAME="${MODEL_NAME:-meta-llama/Llama-3.1-8B-Instruct}"
 INSTANCE_TYPE="${INSTANCE_TYPE:-inf2.xlarge}"
-SERVER_NAME="inf2-devops"
+SERVER_NAME="tpu-jax-inf2-2b-w4a16"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -39,7 +39,7 @@ while [ $# -gt 0 ]; do
       echo "  --profile PROFILE        Optional AWS shared-config profile"
       echo "  --model MODEL            Hugging Face model ID"
       echo "  --instance-type TYPE     inf2.xlarge, inf2.8xlarge, inf2.24xlarge, or inf2.48xlarge"
-      echo "  --server-name NAME       MCP server name (default: inf2-devops)"
+      echo "  --server-name NAME       MCP server name (default: tpu-jax-inf2-2b-w4a16)"
       echo "  --skip-deps              Skip the dependency import check"
       exit 0 ;;
     -*) err "unknown option: $1" ;;
@@ -57,9 +57,9 @@ TARGET_DIR="${TARGET_DIR:-$PWD}"
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
 
 if [ "$GLOBAL" -eq 1 ]; then
-  SKILL_DEST="$HOME/.claude/skills/inf2-management"
+  SKILL_DEST="$HOME/.claude/skills/tpu-jax-inf2-2b-w4a16-management"
 else
-  SKILL_DEST="$TARGET_DIR/.claude/skills/inf2-management"
+  SKILL_DEST="$TARGET_DIR/.claude/skills/tpu-jax-inf2-2b-w4a16-management"
 fi
 mkdir -p "$(dirname "$SKILL_DEST")"
 if [ "$SKILL_SRC" != "$SKILL_DEST" ]; then
@@ -87,10 +87,12 @@ for candidate in "$SKILL_SRC/../../../deployments/aws-inf2" \
 done
 [ -n "$JAX_DEPLOY_DIR" ] || info "note: deployments/aws-inf2 not found; serving='jax' will need INF2_JAX_DEPLOY_DIR"
 
-ENV_JSON="$(python3 - "$AWS_REGION" "$AWS_PROFILE" "$MODEL_NAME" "$INSTANCE_TYPE" "$JAX_DEPLOY_DIR" <<'PY'
+ENV_JSON="$(python3 - "$AWS_REGION" "$AWS_PROFILE" "$MODEL_NAME" "$INSTANCE_TYPE" "$JAX_DEPLOY_DIR" "$SERVER_NAME" <<'PY'
 import json, sys
-region, profile, model, instance_type, jax_deploy_dir = sys.argv[1:]
-env = {"AWS_REGION": region, "MODEL_NAME": model, "INSTANCE_TYPE": instance_type}
+region, profile, model, instance_type, jax_deploy_dir, server_name = sys.argv[1:]
+# MCP_SERVER_NAME keeps the name server.py advertises equal to the registered key.
+env = {"AWS_REGION": region, "MODEL_NAME": model, "INSTANCE_TYPE": instance_type,
+       "MCP_SERVER_NAME": server_name}
 if profile:
     env["AWS_PROFILE"] = profile
 if jax_deploy_dir:
@@ -115,7 +117,7 @@ except FileNotFoundError:
     data = {}
 data.setdefault("mcpServers", {})[name] = {
     "command": "python3",
-    "args": [".claude/skills/inf2-management/mcp/server.py"],
+    "args": [".claude/skills/tpu-jax-inf2-2b-w4a16-management/mcp/server.py"],
     "env": json.loads(env),
 }
 with open(path, "w") as handle:

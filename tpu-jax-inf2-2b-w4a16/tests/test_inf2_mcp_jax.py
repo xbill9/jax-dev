@@ -1,4 +1,4 @@
-"""The inf2-devops MCP server's serving='jax' mode (no AWS calls).
+"""The tpu-jax-inf2-2b-w4a16 MCP server's serving='jax' mode (no AWS calls).
 
 The JAX mode is the one serving path in that server with no container behind
 it: the host installs jax-neuronx and runs this repository's engine under
@@ -19,7 +19,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SERVER = ROOT / ".claude" / "skills" / "inf2-management" / "mcp" / "server.py"
+SERVER = ROOT / ".claude" / "skills" / "tpu-jax-inf2-2b-w4a16-management" / "mcp" / "server.py"
 DEPLOY_DIR = ROOT / "deployments" / "aws-inf2"
 
 
