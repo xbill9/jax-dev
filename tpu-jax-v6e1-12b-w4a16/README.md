@@ -150,7 +150,7 @@ Pallas/Mosaic performance.
 
 ## Supporting TPU infrastructure
 
-The repository also retains the `tpu-management` skill and `tpu-devops` MCP
+The repository also retains the `tpu-jax-v6e1-12b-w4a16-management` skill and `tpu-jax-v6e1-12b-w4a16` MCP
 server used to provision flex-start TPU VMs, verify JAX devices, inspect logs,
 run vLLM baselines, and clean up capacity:
 
@@ -160,7 +160,7 @@ make skill
 make skill-install
 ```
 
-See [SKILL.md](.claude/skills/tpu-management/SKILL.md) for the infrastructure
+See [SKILL.md](.claude/skills/tpu-jax-v6e1-12b-w4a16-management/SKILL.md) for the infrastructure
 tool catalog. Root sources (`server.py`, `project-setup.sh`, and `tpu.md`) remain
 authoritative; generated skill snapshots are refreshed with `make skill`.
 

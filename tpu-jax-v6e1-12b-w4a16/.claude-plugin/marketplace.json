@@ -1,15 +1,15 @@
 {
-  "name": "tpu-skill-claude",
-  "description": "Claude Code plugins for Google Cloud TPU DevOps: the tpu-management skill and tpu-devops MCP server for Gemma 4 vLLM serving on TPU VMs.",
+  "name": "tpu-jax-v6e1-12b-w4a16",
+  "description": "Claude Code plugins for Google Cloud TPU DevOps: the tpu-jax-v6e1-12b-w4a16-management skill and tpu-jax-v6e1-12b-w4a16 MCP server for Gemma 4 vLLM serving on TPU VMs.",
   "owner": {
     "name": "xbill9",
     "url": "https://github.com/xbill9"
   },
   "plugins": [
     {
-      "name": "tpu-management",
+      "name": "tpu-jax-v6e1-12b-w4a16",
       "source": "./",
-      "description": "Manage Google Cloud TPU capacity and Gemma 4 vLLM serving on TPU VMs: provisioning, queued resources, quotas, cost estimates, benchmarking, and SRE diagnostics via the tpu-devops MCP server."
+      "description": "Manage Google Cloud TPU capacity and Gemma 4 vLLM serving on TPU VMs: provisioning, queued resources, quotas, cost estimates, benchmarking, and SRE diagnostics via the tpu-jax-v6e1-12b-w4a16 MCP server."
     }
   ]
 }

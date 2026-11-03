@@ -1,5 +1,5 @@
 ---
-name: tpu-management
+name: tpu-jax-v6e1-12b-w4a16-management
 description: Manage Google Cloud TPU capacity, Gemma 4 vLLM serving, and bare JAX dev VMs on TPU. Use when the user asks about provisioning, finding, listing, or destroying TPUs / queued resources / flex-start VMs, starting or debugging vLLM on TPU (v6e, v5p, v5e), TPU quotas and zones, TPU cost estimates, benchmarking TPU serving, or the TPU devops MCP agent. Triggers include "TPU", "queued resource", "flex-start", "v6e", "vLLM on TPU", "TPU quota", "JAX on TPU".
 ---
 
@@ -8,7 +8,7 @@ description: Manage Google Cloud TPU capacity, Gemma 4 vLLM serving, and bare JA
 Operate Google Cloud TPU infrastructure: acquire capacity, run Gemma 4 vLLM
 serving (verify health, benchmark), and tear down. Two ways to act:
 
-1. **Preferred — MCP agent tools.** If the `tpu-devops-agent` MCP server is
+1. **Preferred — MCP agent tools.** If the `tpu-jax-v6e1-12b-w4a16` MCP server is
    connected in this session, use its tools (catalog below). They wrap the correct
    `gcloud` invocations, discovery, and retry/cleanup logic.
 2. **Fallback — direct `gcloud`.** If the MCP server is not connected, either offer to
@@ -35,7 +35,7 @@ serving (verify health, benchmark), and tear down. Two ways to act:
 ## Registering the MCP server
 
 Easiest path — run the bundled installer (idempotent; installs this skill into the
-target project and writes the `tpu-devops` entry into the project's `.mcp.json`,
+target project and writes the `tpu-jax-v6e1-12b-w4a16` entry into the project's `.mcp.json`,
 using the system `python3` — it warns if the pip deps below are missing but never
 creates a venv):
 
@@ -46,18 +46,18 @@ mcp/project-setup.sh --global                                      # all project
 ```
 
 Run `mcp/project-setup.sh --help` for all options (`--model`, `--accelerator`, `--tp`,
-`--server-name`, `--skip-deps`). Then restart Claude Code in the target project and
-approve the server when prompted; `/mcp` should list `tpu-devops`.
+`--server-name`, `--skip-deps`). Then restart Codex in the target project and
+approve the server when prompted; `/mcp` should list `tpu-jax-v6e1-12b-w4a16`.
 
 Manual alternative:
 
 ```bash
-claude mcp add tpu-devops \
+Codex mcp add tpu-jax-v6e1-12b-w4a16 \
   --env GOOGLE_CLOUD_PROJECT=<project-id> \
   --env MODEL_NAME=google/gemma-4-31B-it \
   --env ACCELERATOR_TYPE=v6e-8 \
   --env TENSOR_PARALLEL_SIZE=8 \
-  -- python .claude/skills/tpu-management/mcp/server.py
+  -- python .Codex/skills/tpu-jax-v6e1-12b-w4a16-management/mcp/server.py
 ```
 
 Requires: `pip install -r mcp/requirements.txt`, an authenticated
@@ -84,7 +84,7 @@ A Hugging Face token must exist as Secret Manager secret `hf-token` (save one wi
    - Unknown zone: `get_zones_with_available_quota`, or `find_tpu` which sweeps every
      zone with quota, polls until ACTIVE (3 min, extended to 10 min once PROVISIONING),
      and cleans up failures. It skips zones previously marked failed in
-     `~/.cache/tpu-devops/tpu_zones_status.md`.
+     `~/.cache/tpu-jax-v6e1-12b-w4a16/tpu_zones_status.md`.
 3. **Wait for ACTIVE.** `describe_queued_resource`.
    Queued resources move QUEUED → PROVISIONING → ACTIVE; FAILED/SUSPENDED means
    delete and retry (the manage tool does this automatically).
@@ -176,15 +176,8 @@ serving, provision with `workload="jax"`:
    `find_tpu_vm(workload="jax")`. The startup script installs `JAX_PYTHON_VERSION`
    (default 3.13) from deadsnakes and pip-installs `JAX_PIP_SPEC` (default
    `jax[tpu]`) into it directly — no venv, per this repo's standard; the dedicated
-   interpreter provides the isolation. It upgrades the Python packaging stack and
-   all configured extras, and installs the latest compiler/build tools available
-   from the configured Ubuntu repositories. Default extras include the tokenizer
-   stack (`transformers`, `tokenizers`, `sentencepiece`, Jinja 3.1+) required by
-   the validation harness. No docker, no Hugging Face token, no
+   interpreter provides the isolation. No docker, no Hugging Face token, no
    200 GB image pull, so it boots in a couple of minutes rather than ~8.5.
-   The startup script then upgrades `libtpu` independently to the newest wheel on
-   Google's JAX releases index, overriding the conservative version bundled by
-   the `jax[tpu]` extra; its TPU device assertion is the compatibility gate.
 2. `wait_for_jax_ready` polls the serial console for
    `JAX-BOOTLOADER: TPU environment ready.` and fails fast on
    `JAX-BOOTLOADER: FAILED`. `verify_jax_tpu` re-runs the device check over SSH.

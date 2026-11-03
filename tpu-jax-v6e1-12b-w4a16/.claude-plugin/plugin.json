@@ -1,19 +1,28 @@
 {
-  "name": "tpu-management",
-  "description": "Manage Google Cloud TPU capacity and Gemma 4 vLLM serving on TPU VMs: provisioning, queued resources, quotas, cost estimates, benchmarking, and SRE diagnostics via the tpu-devops MCP server.",
+  "name": "tpu-jax-v6e1-12b-w4a16",
+  "description": "Manage Google Cloud TPU capacity and Gemma 4 vLLM serving on TPU VMs: provisioning, queued resources, quotas, cost estimates, benchmarking, and SRE diagnostics via the tpu-jax-v6e1-12b-w4a16 MCP server.",
   "version": "0.1.0",
   "author": {
     "name": "xbill9",
     "url": "https://github.com/xbill9"
   },
-  "homepage": "https://github.com/xbill9/tpu-skill-claude",
-  "repository": "https://github.com/xbill9/tpu-skill-claude",
+  "homepage": "https://github.com/xbill9/jax-dev/tree/main/tpu-jax-v6e1-12b-w4a16",
+  "repository": "https://github.com/xbill9/jax-dev/tree/main/tpu-jax-v6e1-12b-w4a16",
   "license": "Apache-2.0",
-  "keywords": ["tpu", "gcp", "vllm", "gemma", "mcp", "devops"],
+  "keywords": [
+    "tpu",
+    "gcp",
+    "vllm",
+    "gemma",
+    "mcp",
+    "devops"
+  ],
   "mcpServers": {
-    "tpu-devops": {
+    "tpu-jax-v6e1-12b-w4a16": {
       "command": "python3",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/skills/tpu-management/mcp/server.py"]
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/skills/tpu-jax-v6e1-12b-w4a16-management/mcp/server.py"
+      ]
     }
   }
 }
