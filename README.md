@@ -7,6 +7,7 @@ Each rig directory is a former standalone repo, imported here with its full git 
 | Directory | What it is |
 | --- | --- |
 | [`tpu-jax-v6e1-2b-w4a16`](tpu-jax-v6e1-2b-w4a16) | Gemma 4 E2B QAT W4A16 on one TPU v6e chip, the original pure-JAX engine |
+| [`tpu-jax-v6e1-2b-q4w4a16`](tpu-jax-v6e1-2b-q4w4a16) | Gemma 4 E2B with the QAT Q4_0 grid repacked to W4A16 (`xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text`), the same engine on one TPU v6e chip |
 | [`tpu-jax-v5e1-4b-w4a16`](tpu-jax-v5e1-4b-w4a16) | Gemma 4 E4B QAT W4A16 on one TPU v5e chip |
 | [`tpu-jax-v6e1-12b-w4a16`](tpu-jax-v6e1-12b-w4a16) | 12B QAT W4A16 port of the engine, TPU v6e-1 |
 | [`tpu-jax-v6e1-26b-q4_0`](tpu-jax-v6e1-26b-q4_0) | 26B A4B port, verified on CPU, targeting TPU v6e-1 |

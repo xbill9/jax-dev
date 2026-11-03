@@ -12,6 +12,11 @@
       "description": "Pure-JAX Gemma 4 E2B QAT W4A16 (google/gemma-4-E2B-it-qat-w4a16-ct) on one Cloud TPU v6e chip via queued resources: the original engine, formerly xbill9/tpu-jax. Management skill tpu-jax-v6e1-2b-w4a16-management, MCP tools prefixed mcp__tpu-jax-v6e1-2b-w4a16__."
     },
     {
+      "name": "tpu-jax-v6e1-2b-q4w4a16",
+      "source": "./tpu-jax-v6e1-2b-q4w4a16",
+      "description": "Pure-JAX Gemma 4 E2B with the QAT Q4_0 grid repacked to W4A16 (xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text) on one Cloud TPU v6e chip, the engine of tpu-jax-v6e1-2b-w4a16 with only the checkpoint changed. Management skill tpu-jax-v6e1-2b-q4w4a16-management, MCP tools prefixed mcp__tpu-jax-v6e1-2b-q4w4a16__."
+    },
+    {
       "name": "tpu-jax-v5e1-4b-w4a16",
       "source": "./tpu-jax-v5e1-4b-w4a16",
       "description": "Pure-JAX Gemma 4 E4B QAT W4A16 (google/gemma-4-E4B-it-qat-w4a16-ct) on one Cloud TPU v5e chip, formerly xbill9/tpu-jax-4b. Management skill tpu-jax-v5e1-4b-w4a16-management, MCP tools prefixed mcp__tpu-jax-v5e1-4b-w4a16__."

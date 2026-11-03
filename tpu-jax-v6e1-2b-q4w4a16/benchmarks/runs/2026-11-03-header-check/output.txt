@@ -1,0 +1,12 @@
+xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text@315aec06: 1092 tensors, 276 packed, layers 35, kv-shared from 15
+ per_layer_model_projection: packed
+ embed_tokens: BF16 [262144, 1536]
+ dense fallbacks: none
+ non-text tensors: 0
+ problems: none 0
+xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct@da64116f: 2503 tensors, 276 packed, layers 35, kv-shared from 15
+ per_layer_model_projection: packed
+ embed_tokens: BF16 [262144, 1536]
+ dense fallbacks: none
+ non-text tensors: 1411
+ problems: none 0
