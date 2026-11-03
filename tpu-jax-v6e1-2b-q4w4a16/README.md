@@ -2,7 +2,7 @@
 
 This rig serves `xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text` on one Cloud TPU v6e-1 through the pure-JAX engine of [`tpu-jax-v6e1-2b-w4a16`](../tpu-jax-v6e1-2b-w4a16). The checkpoint is Google's quantization-aware-trained (QAT) E2B, repacked from `google/gemma-4-E2B-it-qat-q4_0-unquantized` into the compressed-tensors W4A16 layout with each group's trained step recovered, so the stored int4 levels are the ones Google trained. The `-text` build drops the vision and audio towers, which the engine never reads.
 
-The engine, loader and model are byte-for-byte the parent rig's. **The only change is the default checkpoint** (`MODEL_ID` in `jax_openai_server.py`, `MODEL_NAME` in `tpu.env`), which is why slot 5 of the directory name is the only slot that differs from the parent (`q4w4a16` against `w4a16`, per `~/gemma4-dev/NAMING.md`).
+The engine, loader and model are byte-for-byte the parent rig's. **The only change is the default checkpoint** (`MODEL_ID` in `jax_openai_server.py`, `MODEL_NAME` in `tpu.env`), which is why slot 5 of the directory name is the only slot that differs from the parent (`q4w4a16` against `w4a16`, per `~/gemma4-dev/NAMING.md`). **[`tpu-jax-v5e1-2b-q4w4a16`](../tpu-jax-v5e1-2b-q4w4a16) is the same rig on a v5e-1:** the two share `server.py`, which derives the runtime image, quota metric and machine type from `tpu.env`'s `ACCELERATOR_TYPE`, and differ only in `tpu.env`.
 
 #### Why this checkpoint
 
@@ -107,6 +107,7 @@ Measurements of the engine itself (buffer donation, int8 KV, kernel sweeps, HTTP
 #### References
 
 - Parent rig: [`tpu-jax-v6e1-2b-w4a16`](../tpu-jax-v6e1-2b-w4a16)
+- v5e-1 sibling: [`tpu-jax-v5e1-2b-q4w4a16`](../tpu-jax-v5e1-2b-q4w4a16)
 - Repack tool: `~/gemma4-dev/jev-tpu-31b/repack_q4_0.py`
 - Checkpoint: [xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text](https://huggingface.co/xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text)
 - Colab measurement: [`colab/notebooks/02_e2b_repack_vs_stock_on_jax.ipynb`](../colab/notebooks/02_e2b_repack_vs_stock_on_jax.ipynb)

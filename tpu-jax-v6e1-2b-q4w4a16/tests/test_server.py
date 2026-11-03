@@ -139,6 +139,44 @@ class HelperTests(unittest.TestCase):
         self.assertIn("Timeout", err)
 
 
+class AcceleratorFamilyTests(unittest.TestCase):
+    """Sibling rigs share server.py and differ only in tpu.env's ACCELERATOR_TYPE, so every
+    per-family value must follow that setting, in either v5e spelling."""
+
+    def test_family_normalizes_both_v5e_spellings(self):
+        self.assertEqual(server._family("v5litepod-1"), "v5e")
+        self.assertEqual(server._family("v5e-1"), "v5e")
+        self.assertEqual(server._family("v6e-1"), "v6e")
+
+    def test_runtime_version_follows_family(self):
+        self.assertEqual(server._qr_runtime_version("v5litepod-1"), "v2-alpha-tpuv5-lite")
+        self.assertEqual(server._qr_runtime_version("v6e-1"), "v2-alpha-tpuv6e")
+
+    def test_quota_id_follows_family(self):
+        self.assertEqual(server._quota_id_for("v5e-1"), "TPUV5sLitepodPerProjectPerZoneForTPUAPI")
+        self.assertEqual(server._quota_id_for("v6e-1"), "TPUV6EPerProjectPerZoneForTPUAPI")
+
+    def test_gce_machine_type_for_single_chips(self):
+        self.assertEqual(server._gce_machine_type("v5e-1"), ("ct5lp-hightpu-1t", 1))
+        self.assertEqual(server._gce_machine_type("v5litepod-1"), ("ct5lp-hightpu-1t", 1))
+        self.assertEqual(server._gce_machine_type("v6e-1"), ("ct6e-standard-1t", 1))
+        self.assertIsNone(server._gce_machine_type("v4-8"))
+
+    def test_tpu_env_matches_directory_hardware_slot(self):
+        """The name's slot 3 is a claim about tpu.env (gemma4-dev NAMING.md)."""
+        env = dict(
+            line.split("=", 1)
+            for line in (ROOT / "tpu.env").read_text().splitlines()
+            if line and not line.startswith("#") and "=" in line
+        )
+        slot3 = ROOT.name.split("-")[2]  # e.g. v5e1, v6e1
+        family, chips = slot3[:3], slot3[3:]
+        accel = env["ACCELERATOR_TYPE"]
+        self.assertEqual(server._family(accel), family)
+        self.assertEqual(accel.rsplit("-", 1)[1], chips)
+        self.assertIsNotNone(server._gce_machine_type(accel))
+
+
 class StartupTemplateTests(unittest.TestCase):
     def render(self):
         template = (
