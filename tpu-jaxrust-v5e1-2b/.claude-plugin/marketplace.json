@@ -1,0 +1,15 @@
+{
+  "name": "tpu-jaxrust-v5e1-2b",
+  "description": "Claude Code plugins for Google Cloud TPU DevOps: the tpu-jaxrust-v5e1-2b-management skill and tpu-jaxrust-v5e1-2b MCP server for Gemma 4 vLLM serving on TPU VMs.",
+  "owner": {
+    "name": "xbill9",
+    "url": "https://github.com/xbill9"
+  },
+  "plugins": [
+    {
+      "name": "tpu-jaxrust-v5e1-2b",
+      "source": "./",
+      "description": "Gemma 4 E2B (google/gemma-4-E2B-it, bf16) in Rust on one Cloud TPU v5e chip: the forward pass emitted as StableHLO and run through libtpu's PJRT plugin, as the PyO3 module jaxrust_rs; plus TPU provisioning via the tpu-jaxrust-v5e1-2b MCP server."
+    }
+  ]
+}

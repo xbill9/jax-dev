@@ -1,0 +1,6 @@
++ cd /home/xbill/tpu-jaxrust-v5e1-2b
++ python3.13 tools/parity.py jax --out parity/jax.json
++ python3.13 tools/parity.py rust --out parity/rust.json
++ python3.13 tools/parity.py compare parity/jax.json parity/rust.json
++ echo ALLDONE
+ALLDONE

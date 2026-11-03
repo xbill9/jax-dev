@@ -1,0 +1,4 @@
+logits after prompt 0: max |diff| 0.2306, mean |diff| 0.07346, argmax 7216 vs 7216, top-10 overlap 10/10, KL(ref||got) 1.31e-06
+prompts tokenized the same: 8 of 8; completions identical: 7 of 8; matching prefix per prompt: [128, 128, 128, 128, 128, 128, 42, 128] (mean 117.2 of 128)
+decode tok/s (median over prompts): jax 131.6, rust 150.7, ratio 1.145
+weights on device: jax 9.257 GB, rust 9.257 GB

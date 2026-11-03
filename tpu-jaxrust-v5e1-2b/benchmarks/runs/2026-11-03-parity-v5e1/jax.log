@@ -1,0 +1,10 @@
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 2075.87it/s]
+jax    131.4 tok/s  Explain TPU buffer donation in JAX in three senten
+jax    131.5 tok/s  Write a Python function that returns the n-th Fibo
+jax    131.8 tok/s  What is the capital of Australia, and why is it no
+jax    132.2 tok/s  Summarize the plot of Romeo and Juliet in one para
+jax    132.0 tok/s  List five prime numbers greater than 100.
+jax    132.1 tok/s  Translate 'The weather is lovely today' into Frenc
+jax    130.3 tok/s  A train leaves at 3:15 pm and arrives at 6:40 pm. 
+jax    130.1 tok/s  Describe how a hash table handles collisions.

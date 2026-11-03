@@ -1,0 +1,12 @@
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+platform {'plugin': '/usr/local/lib/python3.13/dist-packages/libtpu/libtpu.so', 'header_api': (0, 117), 'plugin_api': (0, 116), 'devices': 1} build {'rustc': 'rustc 1.101.0-nightly (1c3a65069 2026-11-02)', 'pjrt_header': '0.117', 'crate': '0.1.0'}
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 1985.94it/s]
+engine Engine(context=256, weight_bytes=9257336832, cache_bytes=4718592) in 8.4s, {'load_s': 2.318838774, 'compile_s': 5.73853671}
+rust   150.7 tok/s  prefill    7.8 ms  Explain TPU buffer donation in JAX in three senten
+rust   150.7 tok/s  prefill    7.9 ms  Write a Python function that returns the n-th Fibo
+rust   150.7 tok/s  prefill    7.8 ms  What is the capital of Australia, and why is it no
+rust   150.7 tok/s  prefill    7.9 ms  Summarize the plot of Romeo and Juliet in one para
+rust   150.7 tok/s  prefill    7.8 ms  List five prime numbers greater than 100.
+rust   150.7 tok/s  prefill    7.8 ms  Translate 'The weather is lovely today' into Frenc
+rust   150.8 tok/s  prefill    7.8 ms  A train leaves at 3:15 pm and arrives at 6:40 pm. 
+rust   151.0 tok/s  prefill    7.8 ms  Describe how a hash table handles collisions.

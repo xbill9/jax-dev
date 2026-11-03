@@ -1,0 +1,28 @@
+{
+  "name": "tpu-jaxrust-v5e1-2b",
+  "description": "Gemma 4 E2B (google/gemma-4-E2B-it, bf16) in Rust on one Cloud TPU v5e chip: the forward pass emitted as StableHLO and run through libtpu's PJRT plugin, as the PyO3 module jaxrust_rs; plus TPU provisioning via the tpu-jaxrust-v5e1-2b MCP server.",
+  "version": "0.1.0",
+  "author": {
+    "name": "xbill9",
+    "url": "https://github.com/xbill9"
+  },
+  "homepage": "https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b",
+  "repository": "https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b",
+  "license": "Apache-2.0",
+  "keywords": [
+    "tpu",
+    "gcp",
+    "vllm",
+    "gemma",
+    "mcp",
+    "devops"
+  ],
+  "mcpServers": {
+    "tpu-jaxrust-v5e1-2b": {
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/skills/tpu-jaxrust-v5e1-2b-management/mcp/server.py"
+      ]
+    }
+  }
+}
