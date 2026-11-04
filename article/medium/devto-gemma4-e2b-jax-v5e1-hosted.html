@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Gemma 4 E2B in JAX on One TPU v5e: bf16 or 4-Bit, Python or Rust, and How It Stands Against vLLM</title>
+  <meta name="description" content="Gemma 4 E2B served three ways on one Cloud TPU v5e chip: a pure-JAX engine in Python, the same graph written in Rust and compiled by the libtpu that JAX loads, and vLLM, all timed by one client. bf16 beats 4-bit in the JAX engine, the Rust engine matches the JAX engine&#x27;s tokens, and over HTTP it decodes at vLLM&#x27;s rate with the fastest first token." />
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+    body{font-family:-apple-system,'Segoe UI',Roboto,'Liberation Sans',Arial,sans-serif;
+         font-size:18px;line-height:1.58;max-width:42em;color:#242424;}
+    h1,h2,h3,h4{font-weight:700;line-height:1.25;margin-top:1.8em;}
+    h4{font-size:1.25em;}
+    img{max-width:100%;height:auto;display:block;margin:1.6em 0;}
+    pre{background:#f7f7f7;border:1px solid #e6e6e6;border-radius:4px;
+        padding:12px 14px;overflow-x:auto;font-size:14px;line-height:1.45;}
+    code{font-family:'Liberation Mono',Menlo,Consolas,monospace;}
+    :not(pre)>code{background:#f2f2f2;padding:1px 5px;border-radius:3px;font-size:.9em;}
+    blockquote{border-left:3px solid #ddd;margin-left:0;padding-left:1em;color:#555;}
+    hr{border:0;border-top:1px solid #e6e6e6;margin:2.4em 0;}
+  </style>
+</head>
+<body>
+<p>This article provides a step by step guide to serving Gemma 4 E2B on
+a single Cloud TPU v5e chip with JAX. A pure-JAX engine serves the model
+from Python, a second engine builds the same graph in Rust and hands it
+to the libtpu compiler that JAX itself uses, and vLLM serves the same
+checkpoint as the reference. Every number below was measured on one
+flex-start v5e-1 VM on 2026-11-03, and every run is committed with its
+logs.</p>
+<figure><img src="https://raw.githubusercontent.com/xbill9/jax-dev/main/article/medium/img/devto-cover.3c49df33.jpg" alt="Gemma 4 E2B in JAX on One TPU v5e: bf16 or 4-Bit, Python or Rust, and How It Stands Against vLLM" /></figure>
+<p><a
+href="https://github.com/xbill9/jax-dev">https://github.com/xbill9/jax-dev</a></p>
+<hr />
+<h4 id="why-one-v5e-chip">Why One v5e Chip?</h4>
+<p>A v5e-1 is the smallest Cloud TPU you can rent: one chip, 16.909 GB
+of HBM, in a <code>ct5lp-hightpu-1t</code> VM. Gemma 4 E2B in bf16 puts
+9.257 GB of weights on it, which leaves room for the KV cache with no
+quantization at all. That makes it the place to ask three questions with
+nothing else in the way:</p>
+<ul>
+<li>Does 4-bit pay off for a model that already fits in bf16?</li>
+<li>How much of the JAX engine's time is Python?</li>
+<li>Where does a hand-written JAX engine stand against vLLM on the same
+chip?</li>
+</ul>
+<hr />
+<h4 id="at-this-point-you-should-have">At This Point You Should
+Have…</h4>
+<ul>
+<li>A Google Cloud project with the TPU API enabled and flex-start quota
+for v5e (<code>TPUV5sLitepodPerProjectPerZoneForTPUAPI</code>) in
+<code>us-west4-a</code></li>
+<li>An authenticated <code>gcloud</code> with the alpha components</li>
+<li>The repository cloned, and its <code>tpu-jax-v5e1-2b</code>
+directory as the working directory</li>
+</ul>
+<p>No Hugging Face token is needed: <code>google/gemma-4-E2B-it</code>
+and both 4-bit builds are public.</p>
+<hr />
+<h4 id="step-1--provision-a-flex-start-v5e-1">Step 1 — Provision a
+Flex-Start v5e-1</h4>
+<p>Each rig ships an MCP server, <code>server.py</code>, whose tools
+wrap the <code>gcloud</code> calls. The rig's <code>tpu.env</code> sets
+<code>ACCELERATOR_TYPE=v5litepod-1</code>, and the server derives the
+machine type from it. <code>workload="jax"</code> installs Python 3.13
+and <code>jax[tpu]</code> on a bare VM with no Docker:</p>
+<pre class="text"><code>$ python3 -c &#39;import asyncio, server as s; print(asyncio.run(s.create_tpu_vm_instance(instance_name=&quot;jax-v5e1-2b&quot;, zone=&quot;us-west4-a&quot;, accelerator=&quot;v5litepod-1&quot;, workload=&quot;jax&quot;, max_run_duration=&quot;4h&quot;, request_valid_for=&quot;30m&quot;)))&#39;
+Executing gcloud command: gcloud compute instances create jax-v5e1-2b --project=&lt;project-id&gt; --zone=us-west4-a --machine-type=ct5lp-hightpu-1t --provisioning-model=FLEX_START --request-valid-for-duration=30m --max-run-duration=4h --instance-termination-action=DELETE ... --boot-disk-size=200GB --scopes=cloud-platform
+🚀 Flex-start TPU VM `jax-v5e1-2b` (ct5lp-hightpu-1t, 1 chip(s)) created in us-west4-a; installing Python 3.13 + `jax[tpu]`.
+NAME         ZONE        MACHINE_TYPE      PREEMPTIBLE  STATUS
+jax-v5e1-2b  us-west4-a  ct5lp-hightpu-1t               RUNNING</code></pre>
+<p><code>wait_for_jax_ready</code> watches the serial console until the
+startup script has seen a TPU device from JAX:</p>
+<pre class="text"><code>🟢 JAX environment ready on `jax-v5e1-2b`. Verify with `verify_jax_tpu`; run workloads over SSH with `python3.13`.
+ 
+$ python3.13 -c &quot;import jax; print(jax.__version__, jax.devices())&quot;
+0.12.0.1 [TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)]</code></pre>
+<p>The flex-start VM deletes itself after
+<code>--max-run-duration</code>, so a forgotten VM stops billing on its
+own.</p>
+<hr />
+<h4 id="step-2--load-e2b-into-the-pure-jax-engine">Step 2 — Load E2B
+Into the Pure-JAX Engine</h4>
+<p><code>jax_engine.py</code> is a Gemma 4 E2B decoder written directly
+in JAX: jitted prefill, a static KV cache, and one jitted decode step
+per token. It reads the Hugging Face safetensors itself, so no PyTorch
+is installed. <code>--quant-mode fp16</code> is its dense path, which
+keeps the bf16 weights as they are:</p>
+<pre class="text"><code>$ python3.13 jax_openai_server.py --model google/gemma-4-E2B-it --quant-mode fp16 --max-model-len 2048
+JAX devices: [TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)]
+Loading tokenizer: google/gemma-4-E2B-it
+Loaded 9.26 GB of parameters on TPU_0(process=0,(0,0,0,0)) in 5.4s (KV cache: bf16)
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)</code></pre>
+<p>The server speaks the OpenAI chat API, streamed or not, so any OpenAI
+client can talk to it.</p>
+<hr />
+<h4 id="step-3--bf16-or-4-bit">Step 3 — bf16 or 4-Bit?</h4>
+<p>Two 4-bit builds of E2B load into the same engine with
+<code>--quant-mode w4a16</code>: Google's
+<code>google/gemma-4-E2B-it-qat-w4a16-ct</code>, and
+<code>xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text</code>, a repack that
+stores the QAT grid exactly. <code>tools/ab_bench.py</code> runs each in
+its own process on 8 prompts, 128 greedy tokens each, one untimed run
+and three timed:</p>
+<pre class="text"><code>loaded google/gemma-4-E2B-it in 64.7s, weights 9.257 GB, HBM 9.260 / 16.909 GB
+loaded xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text in 39.2s, weights 6.559 GB, HBM 6.561 / 16.909 GB
+loaded google/gemma-4-E2B-it-qat-w4a16-ct in 51.9s, weights 6.559 GB, HBM 6.562 / 16.909 GB
+ 
+arm                                                tok/s  x ref weights GB  HBM GB
+google/gemma-4-E2B-it (fp16)                       132.6  1.000      9.257   9.260
+xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text (w4a16)   103.0  0.777      6.559   6.561
+google/gemma-4-E2B-it-qat-w4a16-ct (w4a16)         103.1  0.777      6.559   6.562</code></pre>
+<p>bf16 decodes 1.29x faster than either 4-bit build and prefills in 7.4
+ms against 23.2 ms. The 4-bit builds save 2.70 GB of HBM. This engine
+unpacks the int4 weights inside every matmul, and on a chip where bf16
+already fits, that unpacking costs more time than the smaller weights
+save.</p>
+<p>The repack and Google's export tie on speed and size. Their outputs
+differ: none of the 8 completions match token for token, and they agree
+for 26.6 of 128 tokens on average. Which of the two is closer to the
+trained QAT weights is measured in the earlier article listed under
+References.</p>
+<hr />
+<h4 id="step-4--the-same-graph-built-from-rust">Step 4 — The Same Graph,
+Built From Rust</h4>
+<p>JAX traces Python into StableHLO and hands it to the TPU's PJRT
+plugin, <code>libtpu.so</code>, to compile and run. The
+<code>tpu-jaxrust-v5e1-2b</code> rig writes that StableHLO directly.
+<code>rust/src/gemma.rs</code> builds the forward pass op by op,
+following <code>jax_e_model.py</code> down to where JAX promotes bf16 to
+f32:</p>
+<pre class="rust"><code>fn rms_norm(b: &amp;mut Builder, x: &amp;V, w: Option&lt;&amp;V&gt;, eps: f64) -&gt; V {
+    let dt = x.dt;
+    let last = x.rank() as i64 - 1;
+    let d = x.dim(-1) as f64;
+    let xf = b.convert(x, DType::F32);
+    let sq = b.mul(&amp;xf, &amp;xf);
+    let sum = b.reduce_sum(&amp;sq, &amp;[last]);
+    let var = b.scale(&amp;sum, 1.0 / d);
+    let var = b.add_scalar(&amp;var, eps);
+    let r = b.rsqrt(&amp;var);
+    ...</code></pre>
+<p><code>rust/src/hlo.rs</code> prints the module as MLIR text, and
+<code>rust/src/pjrt.c</code>, a small C shim over the vendored PJRT C
+API header, opens the same <code>libtpu.so</code> that JAX loaded and
+compiles it. A PyO3 module, <code>jaxrust_rs</code>, hands the result to
+Python for the tokenizer:</p>
+<pre class="text"><code>platform {&#39;plugin&#39;: &#39;/usr/local/lib/python3.13/dist-packages/libtpu/libtpu.so&#39;, &#39;header_api&#39;: (0, 117), &#39;plugin_api&#39;: (0, 116), &#39;devices&#39;: 1}
+build {&#39;rustc&#39;: &#39;rustc 1.101.0-nightly (1c3a65069 2026-11-02)&#39;, &#39;pjrt_header&#39;: &#39;0.117&#39;, &#39;crate&#39;: &#39;0.1.0&#39;}
+engine Engine(context=256, weight_bytes=9257336832, cache_bytes=4718592) in 8.4s, {&#39;load_s&#39;: 2.318838774, &#39;compile_s&#39;: 5.73853671}</code></pre>
+<p>The weights upload in 2.3 s and the decode program compiles in 5.7 s.
+There is no JAX in this path, and the Rust crate has no ML dependencies:
+<code>pyo3</code>, <code>safetensors</code>, <code>memmap2</code> and
+<code>serde_json</code>.</p>
+<hr />
+<h4 id="step-5--does-rust-produce-the-same-tokens-as-jax">Step 5 — Does
+Rust Produce the Same Tokens as JAX?</h4>
+<p><code>tools/parity.py</code> runs each engine in its own process on
+the same 8 prompts, with the same chat template and the same leading
+<code>&lt;bos&gt;</code>, and compares the last-position logits after
+the first prompt and every greedy token:</p>
+<pre class="text"><code>logits after prompt 0: max |diff| 0.2306, mean |diff| 0.07346, argmax 7216 vs 7216, top-10 overlap 10/10, KL(ref||got) 1.31e-06
+prompts tokenized the same: 8 of 8; completions identical: 7 of 8; matching prefix per prompt: [128, 128, 128, 128, 128, 128, 42, 128] (mean 117.2 of 128)
+decode tok/s (median over prompts): jax 131.6, rust 150.7, ratio 1.145
+weights on device: jax 9.257 GB, rust 9.257 GB</code></pre>
+<p>Both engines pick the same next token with the same top 10, 1.31e-6
+apart in KL divergence. Seven of eight 128-token completions match token
+for token; the eighth parts at token 42, where "Time until 4:00 pm" and
+"Next full hour: 4:00 pm" were nearly tied. Timed inside each engine,
+Rust decodes 1.145x faster on identical weights.</p>
+<hr />
+<h4 id="step-6--serve-all-three-through-one-client">Step 6 — Serve All
+Three Through One Client</h4>
+<p>The Rust engine gets an OpenAI-style server of its own,
+<code>rust_openai_server.py</code>, and vLLM 0.33 runs from the
+<code>vllm/vllm-tpu</code> image on the same VM. Each server takes port
+8000 alone, and <code>tools/serve_bench.py</code> times all three the
+same way: streamed chat, one request at a time, temperature 0, exactly
+128 tokens (<code>ignore_eos</code>), context 2048, 8 prompts with one
+untimed and three timed requests each:</p>
+<pre class="text"><code>$ python3 tools/serve_bench.py compare vllm.json jax.json rust.json
+engine      decode tok/s           range  first token ms  tokens  same text as vllm
+vllm               148.7   148.7-148.7              13.0     128              8 of 8
+jax                126.7   126.0-128.4              12.5     128              6 of 8
+rust               148.4   147.8-148.6               8.9     128              6 of 8
+prompt tokens per engine: {&#39;vllm&#39;: [20, 23, 23, 21, 20, 24, 35, 17], &#39;jax&#39;: [20, 23, 23, 21, 20, 24, 35, 17], &#39;rust&#39;: [20, 23, 23, 21, 20, 24, 35, 17]}
+repeats identical: {&#39;vllm&#39;: 8, &#39;jax&#39;: 8, &#39;rust&#39;: 8}
+ratio jax / vllm: 0.852
+ratio rust / vllm: 0.998</code></pre>
+<p>The Rust engine decodes at vLLM's rate, 148.4 against 148.7 tokens
+per second, and reaches the first token in 8.9 ms against 13.0. The
+Python JAX engine decodes at 0.852x vLLM with a first token level with
+it. All three tokenize every prompt to the same length, and each repeats
+its own text exactly. The JAX and Rust engines part from vLLM at the
+same two near-ties, in prompts 2 and 6.</p>
+<hr />
+<h4 id="mag_right-tip-time-every-engine-by-the-same-clock">🔎 Tip: Time
+Every Engine by the Same Clock</h4>
+<p>Engines report their own speed in their own way: inside the decode
+loop, per HTTP response, with or without the first token. One client
+gives every engine the same definition. In <code>serve_bench.py</code>,
+decode speed is completion tokens minus one, over the time from the
+first text chunk to the finish chunk, with the token count read from the
+server's usage chunk. The clock stops at the finish chunk because, past
+the end of the answer, <code>ignore_eos</code> tokens can decode to
+empty text. The same Rust engine reads 150.7 tokens per second timed
+inside the engine at context 256, and 148.4 through this client at
+context 2048.</p>
+<hr />
+<h4 id="mag_right-tip-libtpu-wants-one-replica-and-one-partition">🔎
+Tip: libtpu Wants One Replica and One Partition</h4>
+<p>PJRT's compile call takes a serialized
+<code>xla.CompileOptionsProto</code>. With empty options, libtpu asks
+for zero cores and refuses to compile ("Requested total cores: 0"). Six
+bytes set one replica and one partition:</p>
+<pre class="rust"><code>/// `xla.CompileOptionsProto { executable_build_options { num_replicas: 1, num_partitions: 1 } }`
+/// serialized by hand: field 3 (length 4) holding fields 4 and 5, varint 1 each.
+const COMPILE_OPTIONS: [u8; 6] = [0x1a, 0x04, 0x20, 0x01, 0x28, 0x01];</code></pre>
+<p>Two rules of the MLIR text format surface at the same compile call: a
+float literal needs a decimal point (<code>2.0e0</code>), and an empty
+integer array is written <code>array&lt;i64&gt;</code>.</p>
+<hr />
+<h4 id="compare-and-contrast">Compare and Contrast</h4>
+<p><img src="https://raw.githubusercontent.com/xbill9/jax-dev/main/article/medium/img/devto-gemma4-e2b-jax-v5e1-table-1.png"
+alt="Table: One v5e chip, E2B, JAX engine, bf16, JAX engine, 4-bit, Rust engine, bf16, vLLM 0.33, bf16" /></p>
+<hr />
+<h4 id="so-which-one">So, Which One?</h4>
+<p>For one user at a time, the Rust engine: it decodes at vLLM's rate,
+answers first, and puts the same 9.257 GB on the chip. For JAX work in
+Python, the bf16 JAX engine: 0.852x vLLM, with the whole model written
+in JAX you can read and change. For more than one user, vLLM, which
+batches requests and is the only one of the three that does. On this
+chip keep E2B in bf16: the 4-bit builds save 2.70 GB and decode at
+0.777x its speed in this engine.</p>
+<hr />
+<h4 id="summary">Summary</h4>
+<p>The goal of this article was to measure Gemma 4 E2B in JAX on one TPU
+v5e chip: bf16 against 4-bit, Python against Rust, and both against
+vLLM. The key to the solution was holding everything else fixed: one VM,
+one checkpoint revision, the same 8 prompts through each server's own
+chat template, and one client timing every engine. The results were:</p>
+<ul>
+<li>🟢 The Rust engine, the same graph built from Rust and compiled by
+JAX's own libtpu, decodes at vLLM's rate (0.998x) with the fastest first
+token, 8.9 ms</li>
+<li>🟢 It matches the JAX engine: same argmax and top 10, KL 1.31e-6, 7
+of 8 completions token for token</li>
+<li>🟢 bf16 E2B fits a v5e chip (HBM 9.260 / 16.909 GB in use) and
+decodes 1.29x faster than 4-bit in the JAX engine</li>
+<li>⚠️ The Python JAX engine decodes at 0.852x vLLM over HTTP; where its
+time goes was not measured</li>
+<li>⚠️ The repack and Google's 4-bit export run at the same speed and
+size, with different outputs</li>
+<li>❌ Neither JAX engine takes concurrent requests, so vLLM's batching
+is not compared here</li>
+</ul>
+<p>Scope: one flex-start <code>ct5lp-hightpu-1t</code> VM in
+<code>us-west4-a</code> (one TPU v5 lite chip, 16.909 GB HBM) on
+2026-11-03; JAX 0.12.0.1 and libtpu 0.0.51 for both JAX-side engines,
+vLLM 0.33.0rc1.dev430 from <code>vllm/vllm-tpu@sha256:f1f925f5…</code>;
+<code>google/gemma-4-E2B-it</code> at revision <code>4adf1574</code>.
+Every figure is the median over 8 prompts of the median of 3 timed runs,
+greedy, 128 tokens, one request at a time. The in-engine runs used
+context 4096 (bf16 against 4-bit: 132.6 tok/s for bf16) and 256 (JAX
+against Rust: 131.6 for bf16); the one-client run used 2048 for all
+three. Parts of the analysis and writing were done with AI assistance
+(Claude); every figure comes from the committed run files.</p>
+<p>The strategy for serving Gemma 4 E2B with JAX on a single TPU v5e
+chip was validated with an incremental step by step approach.</p>
+<hr />
+<h4 id="references">References</h4>
+<ul>
+<li>The monorepo: <a
+href="https://github.com/xbill9/jax-dev">https://github.com/xbill9/jax-dev</a></li>
+<li>The pure-JAX rig: <a
+href="https://github.com/xbill9/jax-dev/tree/main/tpu-jax-v5e1-2b">https://github.com/xbill9/jax-dev/tree/main/tpu-jax-v5e1-2b</a></li>
+<li>The Rust rig: <a
+href="https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b">https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b</a></li>
+<li>bf16 against 4-bit run: <a
+href="https://github.com/xbill9/jax-dev/tree/main/tpu-jax-v5e1-2b/benchmarks/runs/2026-11-03-ab-v5e1">https://github.com/xbill9/jax-dev/tree/main/tpu-jax-v5e1-2b/benchmarks/runs/2026-11-03-ab-v5e1</a></li>
+<li>JAX against Rust run: <a
+href="https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b/benchmarks/runs/2026-11-03-parity-v5e1">https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b/benchmarks/runs/2026-11-03-parity-v5e1</a></li>
+<li>One-client run: <a
+href="https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b/benchmarks/runs/2026-11-03-serve-v5e1">https://github.com/xbill9/jax-dev/tree/main/tpu-jaxrust-v5e1-2b/benchmarks/runs/2026-11-03-serve-v5e1</a></li>
+<li>The repack against Google's 4-bit export, on a Colab v5e: <a
+href="https://dev.to/gde/gemma-4-e2b-in-pure-jax-on-a-colab-tpu-googles-4-bit-export-against-an-exact-repack-4dle">https://dev.to/gde/gemma-4-e2b-in-pure-jax-on-a-colab-tpu-googles-4-bit-export-against-an-exact-repack-4dle</a></li>
+<li>The model: <a
+href="https://huggingface.co/google/gemma-4-E2B-it">https://huggingface.co/google/gemma-4-E2B-it</a></li>
+<li>The repack: <a
+href="https://huggingface.co/xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text">https://huggingface.co/xbill9/gemma-4-E2B-it-qat-q4_0-w4a16-ct-text</a></li>
+<li>Google's 4-bit export: <a
+href="https://huggingface.co/google/gemma-4-E2B-it-qat-w4a16-ct">https://huggingface.co/google/gemma-4-E2B-it-qat-w4a16-ct</a></li>
+<li>StableHLO specification: <a
+href="https://openxla.org/stablehlo/spec">https://openxla.org/stablehlo/spec</a></li>
+<li>PJRT C API header: <a
+href="https://github.com/openxla/xla/blob/261d4d4979f65a89b614a6a5baae1790ce51f048/xla/pjrt/c/pjrt_c_api.h">https://github.com/openxla/xla/blob/261d4d4979f65a89b614a6a5baae1790ce51f048/xla/pjrt/c/pjrt_c_api.h</a></li>
+</ul>
+</body>
+</html>

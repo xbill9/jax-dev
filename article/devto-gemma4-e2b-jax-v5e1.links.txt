@@ -1,4 +1,4 @@
-devto     = https://dev.to/gde/gemma-4-e2b-in-jax-on-one-tpu-v5e-bf16-or-4-bit-python-or-rust-and-how-it-stands-against-vllm-59a3-temp-slug-7984249
+devto     = https://dev.to/gde/gemma-4-e2b-in-jax-on-one-tpu-v5e-bf16-or-4-bit-python-or-rust-and-how-it-stands-against-vllm-j72
 repo      = https://github.com/xbill9/jax-dev
 medium    = PENDING
 substack  = PENDING
