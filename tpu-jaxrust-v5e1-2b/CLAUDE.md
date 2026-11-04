@@ -4,7 +4,7 @@ Guidance for Claude Code when working in this repository.
 
 ## This rig
 
-`tpu-jaxrust-v5e1-2b` serves `google/gemma-4-E2B-it` (bf16) on one TPU v5e chip with the forward pass written in Rust: `rust/src/gemma.rs` builds the graph, `rust/src/hlo.rs` emits it as StableHLO text, and libtpu's PJRT plugin (the one JAX loads) compiles and runs it through `rust/src/pjrt.c`, a C shim over the vendored PJRT C API header. A PyO3 module, `jaxrust_rs`, exposes it to Python. No JAX in the model path. Sister rig: `../tpu-jax-v5e1-2b`, the same checkpoint on the same chip through the Python JAX engine; `tools/parity.py` runs both and compares them. `server.py` is the one shared with that rig and the `q4w4a16` rigs.
+`tpu-jaxrust-v5e1-2b` serves `google/gemma-4-E2B-it` (bf16) on one TPU v5e chip with the forward pass written in Rust: `rust/src/gemma.rs` builds the graph, `rust/src/hlo.rs` emits it as StableHLO text, and libtpu's PJRT plugin (the one JAX loads) compiles and runs it through `rust/src/pjrt.c`, a C shim over the vendored PJRT C API header. A PyO3 module, `jaxrust_rs`, exposes it to Python. No JAX in the model path. Sister rig: `../tpu-jax-v5e1-2b`, the same checkpoint on the same chip through the Python JAX engine; `tools/parity.py` runs both and compares them. `rust_openai_server.py` serves the engine over OpenAI-style HTTP, and `tools/serve_bench.py` times any such server (vLLM included) the same way. `server.py` is the one shared with that rig and the `q4w4a16` rigs.
 
 #### Rules the code depends on
 
@@ -14,6 +14,8 @@ Guidance for Claude Code when working in this repository.
 - **Compile options are 6 hand-encoded bytes** (`pjrt.rs` `COMPILE_OPTIONS`: one replica, one partition). Empty options make libtpu ask for 0 cores.
 - **The KV cache is donated** (`tf.aliasing_output` on each cache argument) and slot equals position: decode starts at the prompt's real length and overwrites the bucket's pad slots.
 - `Engine` is `#[pyclass(unsendable)]`: build it and call it on one thread. One process holds the TPU.
+- **Stopping a server before the next one starts:** take the PID of the Python process itself (`cd dir; python3.13 … &`, never `cd dir && python3.13 … &`, whose `$!` is a subshell) and wait until port 8000 stops answering. A server left running keeps the TPU, the next one fails to start, and the client times the old one.
+- **`serve_bench.py` stops its clock at the finish chunk.** With `ignore_eos`, tokens past the end of the answer can decode to empty text, so the last text chunk comes early.
 
 ## Project Overview
 

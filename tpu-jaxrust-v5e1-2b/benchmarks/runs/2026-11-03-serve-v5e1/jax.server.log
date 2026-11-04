@@ -1,0 +1,49 @@
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Successfully fetched HF_TOKEN from GCP Secret Manager.
+JAX devices: [TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)]
+Loading tokenizer: google/gemma-4-E2B-it
+Loading W4A16 QAT weights into JAX: google/gemma-4-E2B-it
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 2311.34it/s]
+INFO:     Started server process [12595]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+Loaded 9.26 GB of parameters on TPU_0(process=0,(0,0,0,0)) in 5.4s (KV cache: bf16)
+INFO:     127.0.0.1:34556 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34570 - "GET /v1/models HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34586 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49062 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49070 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49086 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49088 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49104 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49106 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49120 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49130 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49136 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49148 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49100 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49102 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49112 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49120 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49134 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49144 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49158 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49162 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49168 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49174 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44146 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44158 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44174 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44190 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44196 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44210 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44226 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44232 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44238 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44250 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40116 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [12595]

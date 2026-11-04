@@ -1,0 +1,2 @@
+jax 0.12.0.1, libtpu 0.0.51 (rust and jax arms)
+vllm 0.33.0rc1.dev430+g7b77ed581, image vllm/vllm-tpu@sha256:f1f925f5ac72dd4c12d263a5b125eae9730f45d83699e4671cf6465a0657590d

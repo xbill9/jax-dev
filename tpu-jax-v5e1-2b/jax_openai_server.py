@@ -73,6 +73,9 @@ class ChatCompletionRequest(BaseModel):
     temperature: float | None = 0.7
     top_k: int | None = 40
     stream: bool | None = False
+    # vLLM's extension: decode the full max_tokens, ignoring the stop tokens. Timing runs use it
+    # so every engine produces the same number of tokens.
+    ignore_eos: bool | None = False
 
 
 class CompletionRequest(BaseModel):
@@ -82,6 +85,9 @@ class CompletionRequest(BaseModel):
     temperature: float | None = 0.0
     top_k: int | None = 40
     stream: bool | None = False
+    # vLLM's extension: decode the full max_tokens, ignoring the stop tokens. Timing runs use it
+    # so every engine produces the same number of tokens.
+    ignore_eos: bool | None = False
 
 
 def fetch_hf_token():
@@ -219,7 +225,7 @@ def _sse_stream(prompt_ids, req, req_id: str, object_name: str, t0: float):
         max_new_tokens=req.max_tokens or 128,
         temperature=req.temperature if req.temperature is not None else 0.0,
         top_k=req.top_k or 40,
-        eos_token_ids=_eos_ids(),
+        eos_token_ids=[] if req.ignore_eos else _eos_ids(),
     ):
         if isinstance(item, GenerationStats):
             stats = item
@@ -233,6 +239,11 @@ def _sse_stream(prompt_ids, req, req_id: str, object_name: str, t0: float):
     else:
         finish = "stop"
     yield emit({"delta": {}} if is_chat else {"text": ""}, finish=finish)
+    if stats is not None:
+        # Token counts as the last chunk, the shape vLLM sends for stream_options.include_usage.
+        usage = {"prompt_tokens": stats.prompt_tokens, "completion_tokens": stats.completion_tokens,
+                 "total_tokens": stats.prompt_tokens + stats.completion_tokens}
+        yield f"data: {json.dumps({'id': req_id, 'object': object_name, 'created': created, 'model': req.model or MODEL_ID, 'choices': [], 'usage': usage})}\n\n"
     yield "data: [DONE]\n\n"
 
 
@@ -342,7 +353,7 @@ def chat_completions(req: ChatCompletionRequest):
             max_new_tokens=req.max_tokens or 128,
             temperature=req.temperature if req.temperature is not None else 0.0,
             top_k=req.top_k or 40,
-            eos_token_ids=_eos_ids(),
+            eos_token_ids=[] if req.ignore_eos else _eos_ids(),
         )
         elapsed = time.time() - t0
         _record(stats, elapsed)
@@ -397,7 +408,7 @@ def text_completions(req: CompletionRequest):
             max_new_tokens=req.max_tokens or 128,
             temperature=req.temperature if req.temperature is not None else 0.0,
             top_k=req.top_k or 40,
-            eos_token_ids=_eos_ids(),
+            eos_token_ids=[] if req.ignore_eos else _eos_ids(),
         )
         elapsed = time.time() - t0
         _record(stats, elapsed)

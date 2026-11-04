@@ -19,6 +19,18 @@ The graph follows the pure-JAX engine of [`tpu-jax-v5e1-2b`](../tpu-jax-v5e1-2b)
 - ⚠️ **One prompt diverges at token 42**, at a near-tie between two phrasings; both continue coherently.
 - 🟢 **Fast start.** Weights upload in 2.3 s from the local Hub cache, and the decode program compiles in 5.7 s.
 
+#### Against vLLM, through one client
+
+`benchmarks/runs/2026-11-03-serve-v5e1/`: vLLM, the JAX engine and this engine served in turn on the same chip, each timed by `tools/serve_bench.py` over streamed HTTP, one request at a time, 128 greedy tokens, context 2048.
+
+| | vLLM 0.33 | JAX engine | Rust engine |
+| :--- | ---: | ---: | ---: |
+| Decode tok/s | 148.7 | 126.7 | **148.4** |
+| First token, ms | 13.0 | 12.5 | **8.9** |
+
+- 🟢 **The Rust engine decodes at vLLM's rate** (ratio 0.998) with the fastest first token.
+- 🟢 **All three agree on 6 of 8 completions**, parting at the same two near-ties.
+
 ---
 
 #### Step 1 — Provision a v5e-1
@@ -56,12 +68,24 @@ r = eng.decode(prompt_ids, 128, stop=[1, 106])     # ids from the tokenizer's ch
 
 `rust/PYO3.md` describes every call and how values cross between Python and Rust.
 
-#### Step 4 — Check it against the JAX engine
+#### Step 4 — Serve it over HTTP
+
+```bash
+python3.13 rust_openai_server.py --context 2048 --port 8000
+curl -s localhost:8000/v1/chat/completions -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"Hello"}],"max_tokens":64}'
+```
+
+OpenAI-style `/v1/chat/completions` (streamed or not), `/v1/models` and `/health`. Decoding is greedy; `temperature` is accepted and ignored. `ignore_eos` decodes the full `max_tokens`, and a streamed reply ends with a usage chunk, as vLLM's does.
+
+#### Step 5 — Check it against the JAX engine and vLLM
 
 ```bash
 python3.13 tools/parity.py jax  --out jax.json     # needs ../tpu-jax-v5e1-2b beside this rig
 python3.13 tools/parity.py rust --out rust.json
 python3 tools/parity.py compare jax.json rust.json
+python3 tools/serve_bench.py run --url http://127.0.0.1:8000 --label rust --out rust.json   # any OpenAI server
+python3 tools/serve_bench.py compare vllm.json jax.json rust.json
 ```
 
 ---
@@ -72,7 +96,7 @@ PJRT reports a bad module as a line and column. `jaxrust_rs.emit(model_dir, "pre
 
 #### Scope
 
-One v5e chip, one sequence at a time, greedy decoding, text only, bf16 weights and KV cache. The engine has no HTTP server yet, no sampling beyond argmax, and no 4-bit path; the prefill compiles once per 128-token prompt bucket.
+One v5e chip, one sequence at a time, greedy decoding, text only, bf16 weights and KV cache. The engine has no sampling beyond argmax, no batching and no 4-bit path; the prefill compiles once per 128-token prompt bucket.
 
 ---
 
@@ -86,7 +110,9 @@ One v5e chip, one sequence at a time, greedy decoding, text only, bf16 weights a
 | `rust/src/weights.rs` | safetensors through mmap |
 | `rust/src/bindings.rs` | Every PyO3 item |
 | `rust/vendor/pjrt_c_api.h` | PJRT C API 0.117, openxla/xla `261d4d49` |
+| `rust_openai_server.py` | OpenAI-compatible HTTP server over `jaxrust_rs` |
 | `tools/parity.py` | JAX engine against the Rust engine |
+| `tools/serve_bench.py` | Any OpenAI-compatible server timed the same way |
 | `tests/test_rust_bindings.py` | Binding tests that need no TPU |
 | `tpu.env` | Authoritative `MODEL_NAME`, `PJRT_PLUGIN`, `ACCELERATOR_TYPE`, zone |
 | `server.py`, `skills/`, `.claude/skills/` | MCP server and management skill, shared with the sibling rigs |

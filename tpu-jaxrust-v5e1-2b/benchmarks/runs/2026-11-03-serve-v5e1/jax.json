@@ -1,0 +1,114 @@
+{
+ "label": "jax",
+ "url": "http://127.0.0.1:8000",
+ "model": "google/gemma-4-E2B-it",
+ "max_tokens": 128,
+ "repeats": 3,
+ "note": "jax_openai_server.py --quant-mode fp16 --max-model-len 2048",
+ "prompts": [
+  {
+   "prompt": "Explain TPU buffer donation in JAX in three sentences.",
+   "prompt_tokens": 20,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 126.11323328679616,
+   "first_token_ms": 12.487979000070482,
+   "text": "TPU buffer donation in JAX allows users to share unused or idle TPU resources among different processes or users. This mechanism optimizes resource utilization by enabling dynamic allocation of TPU memory buffers when they are not actively being used. Essentially, it facilitates a form of resource pooling and sharing for more efficient and flexible TPU workload management.\n",
+   "texts_repeat_identical": true
+  },
+  {
+   "prompt": "Write a Python function that returns the n-th Fibonacci number iteratively.",
+   "prompt_tokens": 23,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 126.7377350145677,
+   "first_token_ms": 12.37966899998355,
+   "text": "```python\ndef fibonacci_iterative(n):\n    \"\"\"\n    Calculates the n-th Fibonacci number iteratively.\n\n    The Fibonacci sequence starts with F(0) = 0 and F(1) = 1.\n    F(n) = F(n-1) + F(n-2) for n > 1.\n\n    Args:\n        n (int): The index of the Fibonacci number to calculate (must be non-negative).\n\n    Returns:\n        int: The n-th Fibonacci number.\n\n    Raises:\n        ValueError: If n is a",
+   "texts_repeat_identical": true
+  },
+  {
+   "prompt": "What is the capital of Australia, and why is it not Sydney?",
+   "prompt_tokens": 23,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 128.21741628997603,
+   "first_token_ms": 12.39160900013303,
+   "text": "The capital of Australia is **Canberra**.\n\nHere's why it is not Sydney:\n\n* **Historical Compromise:** Canberra was chosen as the capital through a compromise between the two largest and most influential cities, **Sydney** and **Melbourne**.\n* **Avoiding Rivalry:** Choosing a location equidistant from both major centers was seen as a way to avoid the intense political and cultural rivalry that might have arisen if either city had been chosen as the national capital.\n* **Planned City:** Canberra was specifically designed and planned as a planned city from the ground up to serve as the seat of government, unlike Sydney, which grew organically",
+   "texts_repeat_identical": true
+  },
+  {
+   "prompt": "Summarize the plot of Romeo and Juliet in one paragraph.",
+   "prompt_tokens": 21,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 127.67263780234545,
+   "first_token_ms": 12.487959000054616,
+   "text": "Romeo and Juliet is a tragic romance set in Verona, where the families of the two young lovers, the Montagues and the Capulets, are engaged in a bitter feud. Despite their families' hatred, Romeo and Juliet fall deeply in love at a masked ball and secretly marry with the help of Friar Laurence. However, their happiness is shattered when Romeo is banished for killing a Montague, and Juliet's plan to escape her forced marriage fails due to a miscommunication. In a desperate attempt to reconcile, Romeo and Juliet take poison, leading to their deaths and finally bringing an end to the destructive feud.",
+   "texts_repeat_identical": true
+  },
+  {
+   "prompt": "List five prime numbers greater than 100.",
+   "prompt_tokens": 20,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 126.2743855836206,
+   "first_token_ms": 12.474638999947274,
+   "text": "Here are five prime numbers greater than 100:\n\n1. **101**\n2. **103**\n3. **107**\n4. **109**\n5. **113**",
+   "texts_repeat_identical": true
+  },
+  {
+   "prompt": "Translate 'The weather is lovely today' into French, German and Spanish.",
+   "prompt_tokens": 24,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 126.03077269361795,
+   "first_token_ms": 12.486488999911671,
+   "text": "Here are the translations of \"The weather is lovely today\" in French, German, and Spanish:\n\n* **French:** **Il fait beau aujourd'hui.** (More common and natural) or **Le temps est magnifique aujourd'hui.** (More literal translation of \"lovely\")\n* **German:** **Das Wetter ist heute sch\u00f6n.** (Most common) or **Das Wetter ist heute wundersch\u00f6n.** (More emphasis on \"lovely/beautiful\")\n* **Spanish:** **El tiempo est\u00e1 precioso hoy.** (More literal translation of \"lovely\") or **Hace buen tiempo hoy.** (More common way to say \"The weather",
+   "texts_repeat_identical": true
+  },
+  {
+   "prompt": "A train leaves at 3:15 pm and arrives at 6:40 pm. How long is the trip?",
+   "prompt_tokens": 35,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 126.58577312142533,
+   "first_token_ms": 12.526809000064532,
+   "text": "Here's how to calculate the duration of the trip:\n\n**1. Calculate the time from the departure time to the next full hour:**\n\n* Departure time: 3:15 pm\n* Time until 4:00 pm: $60 - 15 = 45$ minutes\n\n**2. Calculate the time from that hour to the arrival hour:**\n\n* From 4:00 pm to 6:00 pm is 2 hours.\n\n**3. Calculate the time from the last full hour to the arrival time:**\n\n* From 6:00 pm to ",
+   "texts_repeat_identical": true
+  },
+  {
+   "prompt": "Describe how a hash table handles collisions.",
+   "prompt_tokens": 17,
+   "completion_tokens": [
+    128,
+    128,
+    128
+   ],
+   "decode_tok_s": 128.3964250096229,
+   "first_token_ms": 12.343398999973942,
+   "text": "A **hash table** is a data structure that implements an associative array abstract data type, allowing for very fast lookups, insertions, and deletions (ideally in $O(1)$ average time complexity). It achieves this efficiency by using a **hash function** to map keys to specific indices (or \"buckets\") in an underlying array.\n\nHowever, a fundamental challenge arises when two different keys produce the same hash value, or when the hash function maps multiple keys to the same index. This situation is called a **collision**.\n\nA hash table must have a strategy to handle these collisions so that data integrity is maintained and operations remain",
+   "texts_repeat_identical": true
+  }
+ ]
+}
