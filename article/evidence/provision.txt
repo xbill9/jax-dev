@@ -1,0 +1,16 @@
+# Captured verbatim from the session on 2026-11-03 (19:38 EST): the create call in
+# tpu-jax-v5e1-2b/server.py and its output, then wait_for_jax_ready. The VM was deleted at 20:08 EST.
+$ python3 -c 'import asyncio, server as s; print(asyncio.run(s.create_tpu_vm_instance(instance_name="jax-v5e1-2b", zone="us-west4-a", accelerator="v5litepod-1", workload="jax", max_run_duration="4h", request_valid_for="30m")))'
+2026-11-03 19:38:25,184 - tpu-jax-v5e1-2b - INFO - Executing gcloud command: gcloud compute instances create jax-v5e1-2b --project=aisprint-491218 --zone=us-west4-a --machine-type=ct5lp-hightpu-1t --provisioning-model=FLEX_START --request-valid-for-duration=30m --max-run-duration=4h --instance-termination-action=DELETE --image-project=ubuntu-os-accelerator-images --image-family=ubuntu-accel-2204-amd64-tpu-v5e-v5p-v6e --maintenance-policy=TERMINATE --boot-disk-size=200GB --scopes=cloud-platform --metadata-from-file=startup-script=/tmp/tpu-startup-uh0apb4w.sh
+🚀 Flex-start TPU VM `jax-v5e1-2b` (ct5lp-hightpu-1t, 1 chip(s)) created in us-west4-a; installing Python 3.13 + `jax[tpu]`. Follow with `wait_for_jax_ready` or `get_tpu_vm_serial_log`, then `verify_jax_tpu`; the VM self-deletes at max-run-duration (4h).
+NAME         ZONE        MACHINE_TYPE      PREEMPTIBLE  INTERNAL_IP    EXTERNAL_IP    STATUS
+jax-v5e1-2b  us-west4-a  ct5lp-hightpu-1t               <internal-ip>  <external-ip>  RUNNING
+
+$ python3 -c 'import asyncio, server as s; print(asyncio.run(s.wait_for_jax_ready(instance_name="jax-v5e1-2b", zone="us-west4-a")))'
+🟢 JAX environment ready on `jax-v5e1-2b`. Verify with `verify_jax_tpu`; run workloads over SSH with `python3.13`.
+
+$ python3.13 -c "import jax, flax, fastapi, uvicorn; print('py ok', jax.__version__, jax.devices())"
+py ok 0.12.0.1 [TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)]
+
+$ gcloud compute instances delete jax-v5e1-2b --project=aisprint-491218 --zone=us-west4-a --quiet
+Deleted [https://www.googleapis.com/compute/v1/projects/aisprint-491218/zones/us-west4-a/instances/jax-v5e1-2b].

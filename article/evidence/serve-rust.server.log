@@ -1,0 +1,3 @@
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 1409.44it/s]
+engine: {'context': 2048, 'weight_bytes': 9257336832, 'load_s': 2.295956106, 'compile_s': 5.908844847}

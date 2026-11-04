@@ -1,0 +1,8 @@
+engine      decode tok/s           range  first token ms  tokens  same text as vllm
+vllm               148.7   148.7-148.7              13.0     128              8 of 8
+jax                126.7   126.0-128.4              12.5     128              6 of 8
+rust               148.4   147.8-148.6               8.9     128              6 of 8
+prompt tokens per engine: {'vllm': [20, 23, 23, 21, 20, 24, 35, 17], 'jax': [20, 23, 23, 21, 20, 24, 35, 17], 'rust': [20, 23, 23, 21, 20, 24, 35, 17]}
+repeats identical: {'vllm': 8, 'jax': 8, 'rust': 8}
+ratio jax / vllm: 0.852
+ratio rust / vllm: 0.998

@@ -1,0 +1,8 @@
+jax: 126.1 tok/s, first token 12.5 ms, 20 prompt tokens: Explain TPU buffer donation in JAX in th
+jax: 126.7 tok/s, first token 12.4 ms, 23 prompt tokens: Write a Python function that returns the
+jax: 128.2 tok/s, first token 12.4 ms, 23 prompt tokens: What is the capital of Australia, and wh
+jax: 127.7 tok/s, first token 12.5 ms, 21 prompt tokens: Summarize the plot of Romeo and Juliet i
+jax: 126.3 tok/s, first token 12.5 ms, 20 prompt tokens: List five prime numbers greater than 100
+jax: 126.0 tok/s, first token 12.5 ms, 24 prompt tokens: Translate 'The weather is lovely today' 
+jax: 126.6 tok/s, first token 12.5 ms, 35 prompt tokens: A train leaves at 3:15 pm and arrives at
+jax: 128.4 tok/s, first token 12.3 ms, 17 prompt tokens: Describe how a hash table handles collis

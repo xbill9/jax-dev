@@ -1,0 +1,12 @@
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+Successfully fetched HF_TOKEN from GCP Secret Manager.
+JAX devices: [TpuDevice(id=0, process_index=0, coords=(0,0,0), core_on_chip=0)]
+Loading tokenizer: google/gemma-4-E2B-it
+Loading W4A16 QAT weights into JAX: google/gemma-4-E2B-it
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 2311.34it/s]
+INFO:     Started server process [12595]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+Loaded 9.26 GB of parameters on TPU_0(process=0,(0,0,0,0)) in 5.4s (KV cache: bf16)
+INFO:     127.0.0.1:34556 - "GET /v1/models HTTP/1.1" 200 OK

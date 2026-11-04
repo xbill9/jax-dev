@@ -1,0 +1,8 @@
+vllm: 148.7 tok/s, first token 13.4 ms, 20 prompt tokens: Explain TPU buffer donation in JAX in th
+vllm: 148.7 tok/s, first token 12.9 ms, 23 prompt tokens: Write a Python function that returns the
+vllm: 148.7 tok/s, first token 12.9 ms, 23 prompt tokens: What is the capital of Australia, and wh
+vllm: 148.7 tok/s, first token 13.0 ms, 21 prompt tokens: Summarize the plot of Romeo and Juliet i
+vllm: 148.7 tok/s, first token 13.0 ms, 20 prompt tokens: List five prime numbers greater than 100
+vllm: 148.7 tok/s, first token 13.1 ms, 24 prompt tokens: Translate 'The weather is lovely today' 
+vllm: 148.7 tok/s, first token 13.9 ms, 35 prompt tokens: A train leaves at 3:15 pm and arrives at
+vllm: 148.7 tok/s, first token 13.1 ms, 17 prompt tokens: Describe how a hash table handles collis
