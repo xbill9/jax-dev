@@ -1,0 +1,15 @@
+Gemma 4 E2B in JAX on One TPU v5e: bf16 or 4-Bit, Python or Rust, and How It Stands Against vLLM
+
+Gemma 4 E2B served three ways on one Cloud TPU v5e chip: a pure-JAX engine in Python, the same graph written in Rust and compiled by the libtpu that JAX loads, and vLLM, all timed by one client. bf16 beats 4-bit in the JAX engine, the Rust engine matches the JAX engine's tokens, and over HTTP it decodes at vLLM's rate with the fastest first token.
+
+What is in it:
+
+- 🟢 The Rust engine, the same graph built from Rust and compiled by JAX's own libtpu, decodes at vLLM's rate (0.998x) with the fastest first token, 8.9 ms
+- 🟢 It matches the JAX engine: same argmax and top 10, KL 1.31e-6, 7 of 8 completions token for token
+- 🟢 bf16 E2B fits a v5e chip (HBM 9.260 / 16.909 GB in use) and decodes 1.29x faster than 4-bit in the JAX engine
+- ⚠️ The Python JAX engine decodes at 0.852x vLLM over HTTP; where its time goes was not measured
+
+dev.to: https://dev.to/gde/gemma-4-e2b-in-jax-on-one-tpu-v5e-bf16-or-4-bit-python-or-rust-and-how-it-stands-against-vllm-j72
+Medium: https://medium.com/@xbill999/gemma-4-e2b-in-jax-on-one-tpu-v5e-bf16-or-4-bit-python-or-rust-and-how-it-stands-against-vllm-40650bfebe5c
+Substack: https://xbill9.substack.com/p/gemma-4-e2b-in-jax-on-one-tpu-v5e
+Source: https://github.com/xbill9/jax-dev
